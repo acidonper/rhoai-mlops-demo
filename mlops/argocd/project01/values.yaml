@@ -30,6 +30,6 @@ buckets:
   - name: s3bucket-models
     generateBucketName: s3bucket-models
     connectionName: aws-connection-models
-    connectionDisplayName: "Models bucket"
+    connectionDisplayName: "Models bucket for test-workbench"
     workbenchName: test-workbench
     region: ""
