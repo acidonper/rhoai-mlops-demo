@@ -7,7 +7,7 @@ OpenShift GitOps syncs one Application with two sources into the `project01` nam
 1. Tekton tasks, the `create-kubernetes-object` pipeline, and RBAC from `mlops/tekton/s3`.
 2. The `project01` Helm chart from `mlops/argocd/project01`.
 
-The chart creates the project namespace, one `ObjectBucketClaim` per bucket, and one PostSync Job per bucket. Each Job starts a PipelineRun. The pipeline waits until ODF publishes the bucket Secret and ConfigMap, then creates the OpenShift AI connection Secret. If `workbenchName` is set, it attaches that connection to the named workbench.
+The chart creates the project namespace, one `ObjectBucketClaim` per bucket, and one PostSync Job per bucket. Each Job starts a PipelineRun. The pipeline waits until ODF publishes the bucket Secret and ConfigMap, then creates the OpenShift AI connection Secret. Each name in `workbenchName` receives that connection in the same PipelineRun.
 
 ## Layout
 
@@ -22,7 +22,7 @@ The chart creates the project namespace, one `ObjectBucketClaim` per bucket, and
 
 List it under `buckets` in `mlops/argocd/project01/values.yaml`. Each entry needs a DNS-1123 `name`. The next sync creates the claim `ObjectBucketClaim` and the Job `start-connection-<name>`.
 
-Leave `connectionName` empty to use `aws-connection-<name>`. Leave `region` empty to use the chart `region`. Leave `workbenchName` empty to publish the Secret without attaching it to a workbench.
+Leave `connectionName` empty to use `aws-connection-<name>`. Leave `region` empty to use the chart `region`. Leave `workbenchName` empty to publish the Secret without attaching it. Add one list entry per workbench that should receive the connection.
 
 ## Requirements
 

@@ -14,7 +14,7 @@ spec:
       description: ObjectBucketClaim name. ODF creates a Secret and ConfigMap with this name.
     - name: namespace
       type: string
-      description: Namespace of the ObjectBucketClaim, connection Secret, and optional workbench.
+      description: Namespace of the ObjectBucketClaim, connection Secret, and optional workbenches.
       default: ""
     - name: connection-name
       type: string
@@ -24,12 +24,12 @@ spec:
       type: string
       description: Display name shown for the connection in the OpenShift AI dashboard.
       default: ""
-    - name: workbench-name
-      type: string
+    - name: workbench-names
+      type: array
       description: >
-        Notebook name to attach this connection to. Empty leaves the Secret
+        Notebook names to attach this connection to. Empty leaves the Secret
         available for workbenches without changing a Notebook.
-      default: ""
+      default: []
     - name: region
       type: string
       description: AWS_DEFAULT_REGION used when the ObjectBucketClaim ConfigMap has no BUCKET_REGION.
@@ -52,7 +52,6 @@ spec:
         namespace="$(params.namespace)"
         connection_name="$(params.connection-name)"
         display_name="$(params.connection-display-name)"
-        workbench_name="$(params.workbench-name)"
         default_region="$(params.region)"
 
         if [[ -z "${namespace}" ]]; then
@@ -120,30 +119,38 @@ spec:
 
         description="S3 connection for OpenShift AI workbenches, generated from ObjectBucketClaim ${obc_name}"
         secret_file="$(mktemp)"
-        oc create secret generic "${connection_name}" \
-          --namespace "${namespace}" \
-          --type Opaque \
-          --from-literal=AWS_ACCESS_KEY_ID="${access_key}" \
-          --from-literal=AWS_SECRET_ACCESS_KEY="${secret_key}" \
-          --from-literal=AWS_S3_ENDPOINT="${endpoint}" \
-          --from-literal=AWS_S3_BUCKET="${bucket_name}" \
-          --from-literal=AWS_DEFAULT_REGION="${region}" \
-          --dry-run=client -o yaml > "${secret_file}"
+        cat > "${secret_file}" <<EOF
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ${connection_name}
+          namespace: ${namespace}
+          labels:
+            opendatahub.io/dashboard: "true"
+            opendatahub.io/managed: "true"
+            app.kubernetes.io/part-of: create-kubernetes-object
+            app.kubernetes.io/created-by: tekton
+          annotations:
+            opendatahub.io/connection-type-protocol: s3
+            opendatahub.io/connection-type-ref: s3
+            openshift.io/display-name: "${display_name}"
+            openshift.io/description: "${description}"
+        type: Opaque
+        stringData:
+          AWS_ACCESS_KEY_ID: "${access_key}"
+          AWS_SECRET_ACCESS_KEY: "${secret_key}"
+          AWS_S3_ENDPOINT: "${endpoint}"
+          AWS_S3_BUCKET: "${bucket_name}"
+          AWS_DEFAULT_REGION: "${region}"
+        EOF
         oc apply -f "${secret_file}"
         rm -f "${secret_file}"
 
-        oc label secret "${connection_name}" -n "${namespace}" --overwrite \
-          opendatahub.io/dashboard=true \
-          opendatahub.io/managed=true \
-          app.kubernetes.io/part-of=create-kubernetes-object \
-          app.kubernetes.io/created-by=tekton
-        oc annotate secret "${connection_name}" -n "${namespace}" --overwrite \
-          opendatahub.io/connection-type-protocol=s3 \
-          "openshift.io/display-name=${display_name}" \
-          "openshift.io/description=${description}"
-
-        if [[ -n "${workbench_name}" ]]; then
-          connection_ref="${namespace}/${connection_name}"
+        connection_ref="${namespace}/${connection_name}"
+        for workbench_name in $(params.workbench-names[*]); do
+          if [[ -z "${workbench_name}" ]]; then
+            continue
+          fi
           current="$(oc get notebook "${workbench_name}" -n "${namespace}" -o jsonpath="{.metadata.annotations['opendatahub.io/connections']}")"
           if [[ -z "${current}" ]]; then
             updated="${connection_ref}"
@@ -155,7 +162,7 @@ spec:
           oc annotate notebook "${workbench_name}" -n "${namespace}" --overwrite \
             "opendatahub.io/connections=${updated}"
           echo "Attached ${connection_ref} to workbench ${workbench_name}"
-        fi
+        done
 
         printf 'secret/%s' "${connection_name}" > "$(results.connection-ref.path)"
         echo "Created secret/${connection_name} in ${namespace} for bucket ${bucket_name}"

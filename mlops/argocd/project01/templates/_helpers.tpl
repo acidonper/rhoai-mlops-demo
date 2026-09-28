@@ -19,5 +19,19 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- fail (printf "duplicate bucket name %q" $name) -}}
 {{- end -}}
 {{- $_ := set $seen $name true -}}
+{{- $workbenches := .workbenchName | default (list) -}}
+{{- if not (kindIs "slice" $workbenches) -}}
+{{- fail (printf "bucket %q workbenchName must be a list" $name) -}}
+{{- end -}}
+{{- $seenWorkbenches := dict -}}
+{{- range $workbenches -}}
+{{- if not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" .) -}}
+{{- fail (printf "workbench name %q on bucket %q must be a DNS-1123 label" . $name) -}}
+{{- end -}}
+{{- if hasKey $seenWorkbenches . -}}
+{{- fail (printf "duplicate workbench name %q on bucket %q" . $name) -}}
+{{- end -}}
+{{- $_ := set $seenWorkbenches . true -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}

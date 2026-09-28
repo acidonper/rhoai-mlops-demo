@@ -29,10 +29,10 @@ spec:
       type: string
       description: Display name for the OpenShift AI connection.
       default: ""
-    - name: workbench-name
-      type: string
-      description: Notebook to attach the connection to. Empty publishes the Secret only.
-      default: ""
+    - name: workbench-names
+      type: array
+      description: Notebooks to attach the connection to in this run. Empty publishes the Secret only.
+      default: []
     - name: region
       type: string
       description: Region used when the ObjectBucketClaim ConfigMap has no BUCKET_REGION.
@@ -67,7 +67,7 @@ spec:
           value: $(params.connection-name)
         - name: connection-display-name
           value: $(params.connection-display-name)
-        - name: workbench-name
-          value: $(params.workbench-name)
+        - name: workbench-names
+          value: ["$(params.workbench-names[*])"]
         - name: region
           value: $(params.region)

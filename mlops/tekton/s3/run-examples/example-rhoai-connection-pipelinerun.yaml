@@ -22,7 +22,7 @@ spec:
       value: aws-connection-example-obc
     - name: connection-display-name
       value: Example ODF bucket
-    - name: workbench-name
-      value: ""
+    - name: workbench-names
+      value: []
     - name: region
       value: us-east-1

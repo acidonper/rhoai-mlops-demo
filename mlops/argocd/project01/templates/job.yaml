@@ -41,8 +41,6 @@ spec:
               value: {{ $bucket.connectionName | default "" | quote }}
             - name: CONNECTION_DISPLAY_NAME
               value: {{ $bucket.connectionDisplayName | default "" | quote }}
-            - name: WORKBENCH_NAME
-              value: {{ $bucket.workbenchName | default "" | quote }}
             - name: REGION
               value: {{ $bucket.region | default $.Values.region | quote }}
           command: ["/bin/bash", "-c"]
@@ -76,8 +74,15 @@ spec:
                     value: "${CONNECTION_NAME}"
                   - name: connection-display-name
                     value: "${CONNECTION_DISPLAY_NAME}"
-                  - name: workbench-name
-                    value: "${WORKBENCH_NAME}"
+                  - name: workbench-names
+{{- if $bucket.workbenchName }}
+                    value:
+{{- range $wb := $bucket.workbenchName }}
+                      - {{ $wb | quote }}
+{{- end }}
+{{- else }}
+                    value: []
+{{- end }}
                   - name: region
                     value: "${REGION}"
               EOF
