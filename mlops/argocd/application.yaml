@@ -6,12 +6,12 @@ spec:
   project: default
   sources:
     - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
-      targetRevision: main
+      targetRevision: master
       path: mlops/tekton/s3
       directory:
         exclude: example-*.yaml
     - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
-      targetRevision: main
+      targetRevision: master
       path: mlops/argocd/project01
       helm:
         releaseName: project01
