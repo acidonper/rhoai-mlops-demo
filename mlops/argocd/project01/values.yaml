@@ -21,16 +21,17 @@ pipeline:
 # Each entry creates an ObjectBucketClaim and a Job that starts the pipeline.
 # connectionName empty uses aws-connection-<name> inside the pipeline task.
 buckets:
-  - name: s3bucket
-    generateBucketName: s3bucket
-    connectionName: ""
-    connectionDisplayName: ""
-    workbenchName: []
-    region: ""
-  - name: s3bucket-models
-    generateBucketName: s3bucket-models
-    connectionName: aws-connection-models
-    connectionDisplayName: "Models bucket for test-workbench"
+  - name: s3bucket-models-test-workbenches
+    generateBucketName: s3bucket-models-test-workbenches
+    connectionName: aws-connection-models-test-workbenches
+    connectionDisplayName: "Models bucket for test-workbenches"
     workbenchName:
       - test-workbench
+      - test-workbench-1
     region: ""
+  # - name: s3bucket
+  #   generateBucketName: s3bucket
+  #   connectionName: ""
+  #   connectionDisplayName: ""
+  #   workbenchName: []
+  #   region: ""
