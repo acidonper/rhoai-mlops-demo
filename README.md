@@ -18,7 +18,18 @@ The chart creates the project namespace, one `ObjectBucketClaim` per bucket, and
 | `mlops/tekton/s3/` | Pipeline, tasks, and service accounts |
 | `mlops/tekton/s3/run-examples/` | Manual PipelineRun examples |
 
-## Add a bucket
+## Key Scenarios
+
+### Provisioning environment workbenches with direct S3 integration
+
+Overall sequence:
+
+1. Initialize an Object Storage claim within ODF using automated GitOps workflows
+2. Trigger a dedicated Kubernetes Job during the post-synchronization step:
+2.1 Establish an S3 connection in OpenShift AI, generating the target bucket secret via automated pipelines
+2.2 Bind the active notebook workspace to S3 credentials using metadata annotations
+
+#### Add a bucket
 
 List it under `buckets` in `mlops/argocd/project01/values.yaml`. Each entry needs a DNS-1123 `name`. The next sync creates the claim `ObjectBucketClaim` and the Job `start-connection-<name>`.
 
