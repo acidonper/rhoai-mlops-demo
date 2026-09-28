@@ -1,0 +1,73 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: create-kubernetes-object
+  labels:
+    app.kubernetes.io/part-of: create-kubernetes-object
+spec:
+  description: >
+    Create or update a Kubernetes object, and optionally publish an OpenShift AI
+    S3 connection Secret from an ODF ObjectBucketClaim.
+  params:
+    - name: manifest
+      type: string
+      description: YAML manifest of a single Kubernetes object. Empty skips object creation.
+      default: ""
+    - name: namespace
+      type: string
+      description: Target namespace. Empty uses the PipelineRun namespace.
+      default: ""
+    - name: obc-name
+      type: string
+      description: ObjectBucketClaim whose generated Secret supplies the S3 credentials. Empty skips the connection.
+      default: ""
+    - name: connection-name
+      type: string
+      description: OpenShift AI connection Secret name. Empty uses aws-connection-<obc-name>.
+      default: ""
+    - name: connection-display-name
+      type: string
+      description: Display name for the OpenShift AI connection.
+      default: ""
+    - name: workbench-name
+      type: string
+      description: Notebook to attach the connection to. Empty publishes the Secret only.
+      default: ""
+    - name: region
+      type: string
+      description: Region used when the ObjectBucketClaim ConfigMap has no BUCKET_REGION.
+      default: us-east-1
+  tasks:
+    - name: apply-object
+      when:
+        - input: $(params.manifest)
+          operator: notin
+          values: [""]
+      taskRef:
+        name: apply-kubernetes-object
+      params:
+        - name: manifest
+          value: $(params.manifest)
+        - name: namespace
+          value: $(params.namespace)
+    - name: create-rhoai-connection
+      runAfter: [apply-object]
+      when:
+        - input: $(params.obc-name)
+          operator: notin
+          values: [""]
+      taskRef:
+        name: create-rhoai-data-connection
+      params:
+        - name: obc-name
+          value: $(params.obc-name)
+        - name: namespace
+          value: $(params.namespace)
+        - name: connection-name
+          value: $(params.connection-name)
+        - name: connection-display-name
+          value: $(params.connection-display-name)
+        - name: workbench-name
+          value: $(params.workbench-name)
+        - name: region
+          value: $(params.region)

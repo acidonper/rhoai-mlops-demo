@@ -1,0 +1,35 @@
+# Namespace resources are created in .Release.Namespace, which Argo CD sets
+# from the Application destination namespace.
+namespace:
+  create: true
+  labels:
+    opendatahub.io/dashboard: "true"
+
+storageClassName: openshift-storage.noobaa.io
+region: example
+
+pipeline:
+  application: rhoai-odf-connection
+  name: create-kubernetes-object
+  serviceAccountName: pipeline-object-creator
+  runCreatorServiceAccount: pipeline-run-creator
+  image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+  backoffLimit: 2
+  activeDeadlineSeconds: 180
+  ttlSecondsAfterFinished: 600
+
+# Each entry creates an ObjectBucketClaim and a Job that starts the pipeline.
+# connectionName empty uses aws-connection-<name> inside the pipeline task.
+buckets:
+  - name: s3bucket
+    generateBucketName: s3bucket
+    connectionName: ""
+    connectionDisplayName: ""
+    workbenchName: ""
+    region: ""
+  - name: s3bucket-models
+    generateBucketName: s3bucket-models
+    connectionName: aws-connection-models
+    connectionDisplayName: "Models bucket"
+    workbenchName: test-workbench
+    region: ""

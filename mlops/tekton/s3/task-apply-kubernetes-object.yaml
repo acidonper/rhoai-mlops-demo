@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: apply-kubernetes-object
+  labels:
+    app.kubernetes.io/part-of: create-kubernetes-object
+spec:
+  description: Create or update one Kubernetes object on OpenShift with oc apply.
+  params:
+    - name: manifest
+      type: string
+      description: YAML manifest of a single Kubernetes object.
+    - name: namespace
+      type: string
+      description: Namespace for the object. Empty uses the TaskRun namespace.
+      default: ""
+    - name: cli-image
+      type: string
+      description: OpenShift CLI image available to the cluster.
+      default: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+  results:
+    - name: object-ref
+      description: Kind and name of the applied object, as kind/name.
+  steps:
+    - name: apply
+      image: $(params.cli-image)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        namespace="$(params.namespace)"
+        if [[ -z "${namespace}" ]]; then
+          namespace="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
+        fi
+
+        manifest_file="$(mktemp)"
+        cat > "${manifest_file}" <<'TEKTON_MANIFEST_EOF'
+        $(params.manifest)
+        TEKTON_MANIFEST_EOF
+
+        oc apply --dry-run=server --namespace "${namespace}" -f "${manifest_file}"
+        oc apply --namespace "${namespace}" -f "${manifest_file}" \
+          -o jsonpath='{.kind}/{.metadata.name}' > "$(results.object-ref.path)"
+        echo
+        echo "Applied $(cat "$(results.object-ref.path)") in ${namespace}"

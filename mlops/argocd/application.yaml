@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rhoai-odf-connection
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
+      targetRevision: main
+      path: mlops/tekton/s3
+      directory:
+        exclude: example-*.yaml
+    - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
+      targetRevision: main
+      path: mlops/argocd/project01
+      helm:
+        releaseName: project01
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: project01
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

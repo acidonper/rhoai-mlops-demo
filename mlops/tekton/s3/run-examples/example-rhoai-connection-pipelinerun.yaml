@@ -1,0 +1,28 @@
+# Requires the ObjectBucketClaim Secret and ConfigMap to exist, or this run waits for them:
+#   oc apply -f tekton/rbac.yaml -f tekton/task-apply-kubernetes-object.yaml \
+#     -f tekton/task-create-rhoai-data-connection.yaml -f tekton/pipeline.yaml
+#   oc create -f tekton/example-rhoai-connection-pipelinerun.yaml
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: create-kubernetes-object-
+  labels:
+    app.kubernetes.io/part-of: create-kubernetes-object
+spec:
+  pipelineRef:
+    name: create-kubernetes-object
+  taskRunTemplate:
+    serviceAccountName: pipeline-object-creator
+  params:
+    - name: namespace
+      value: ""
+    - name: obc-name
+      value: example-obc
+    - name: connection-name
+      value: aws-connection-example-obc
+    - name: connection-display-name
+      value: Example ODF bucket
+    - name: workbench-name
+      value: ""
+    - name: region
+      value: us-east-1

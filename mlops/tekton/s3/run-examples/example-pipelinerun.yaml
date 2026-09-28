@@ -1,0 +1,36 @@
+# Install the pipeline first, then start a run:
+#   oc apply -f tekton/rbac.yaml -f tekton/task-apply-kubernetes-object.yaml \
+#     -f tekton/task-create-rhoai-data-connection.yaml -f tekton/pipeline.yaml
+#   oc create -f tekton/example-pipelinerun.yaml
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: create-kubernetes-object-
+  labels:
+    app.kubernetes.io/part-of: create-kubernetes-object
+spec:
+  pipelineRef:
+    name: create-kubernetes-object
+  taskRunTemplate:
+    serviceAccountName: pipeline-object-creator
+  params:
+    - name: namespace
+      value: ""
+    - name: manifest
+      value: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: example-from-pipeline
+          labels:
+            app.kubernetes.io/created-by: tekton
+        data:
+          message: created-by-tekton
+        ---
+        apiVersion: objectbucket.io/v1alpha1
+        kind: ObjectBucketClaim
+        metadata:
+          name: example-from-pipeline
+        spec:
+          generateBucketName: name-prefix
+          storageClassName: openshift-storage.noobaa.io

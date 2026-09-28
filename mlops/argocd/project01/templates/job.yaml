@@ -1,0 +1,84 @@
+{{- include "project01.validate" . -}}
+{{- range $bucket := .Values.buckets }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "start-connection-%s" $bucket.name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "project01.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $bucket.name }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ $.Values.pipeline.backoffLimit }}
+  activeDeadlineSeconds: {{ $.Values.pipeline.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ $.Values.pipeline.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "project01.labels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $bucket.name }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ $.Values.pipeline.runCreatorServiceAccount }}
+      containers:
+        - name: start-pipeline
+          image: {{ $.Values.pipeline.image }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OBC_NAME
+              value: {{ $bucket.name | quote }}
+            - name: CONNECTION_NAME
+              value: {{ $bucket.connectionName | default "" | quote }}
+            - name: CONNECTION_DISPLAY_NAME
+              value: {{ $bucket.connectionDisplayName | default "" | quote }}
+            - name: WORKBENCH_NAME
+              value: {{ $bucket.workbenchName | default "" | quote }}
+            - name: REGION
+              value: {{ $bucket.region | default $.Values.region | quote }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              if [[ -z "${OBC_NAME}" ]]; then
+                echo "OBC_NAME is empty; not starting the pipeline" >&2
+                exit 1
+              fi
+              oc create -n "${NAMESPACE}" -f - <<EOF
+              apiVersion: tekton.dev/v1
+              kind: PipelineRun
+              metadata:
+                generateName: create-kubernetes-object-
+                labels:
+                  app.kubernetes.io/part-of: create-kubernetes-object
+                  app.kubernetes.io/created-by: postsync-job
+                  argocd.argoproj.io/application: {{ $.Values.pipeline.application }}
+              spec:
+                pipelineRef:
+                  name: {{ $.Values.pipeline.name }}
+                taskRunTemplate:
+                  serviceAccountName: {{ $.Values.pipeline.serviceAccountName }}
+                params:
+                  - name: namespace
+                    value: "${NAMESPACE}"
+                  - name: obc-name
+                    value: "${OBC_NAME}"
+                  - name: connection-name
+                    value: "${CONNECTION_NAME}"
+                  - name: connection-display-name
+                    value: "${CONNECTION_DISPLAY_NAME}"
+                  - name: workbench-name
+                    value: "${WORKBENCH_NAME}"
+                  - name: region
+                    value: "${REGION}"
+              EOF
+{{- end }}

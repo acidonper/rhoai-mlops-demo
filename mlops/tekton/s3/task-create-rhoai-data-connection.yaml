@@ -1,0 +1,161 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: create-rhoai-data-connection
+  labels:
+    app.kubernetes.io/part-of: create-kubernetes-object
+spec:
+  description: >
+    Read the Secret and ConfigMap published by an ODF ObjectBucketClaim and
+    create the S3 connection Secret that Red Hat OpenShift AI workbenches use.
+  params:
+    - name: obc-name
+      type: string
+      description: ObjectBucketClaim name. ODF creates a Secret and ConfigMap with this name.
+    - name: namespace
+      type: string
+      description: Namespace of the ObjectBucketClaim, connection Secret, and optional workbench.
+      default: ""
+    - name: connection-name
+      type: string
+      description: Name of the OpenShift AI connection Secret. Empty uses aws-connection-<obc-name>.
+      default: ""
+    - name: connection-display-name
+      type: string
+      description: Display name shown for the connection in the OpenShift AI dashboard.
+      default: ""
+    - name: workbench-name
+      type: string
+      description: >
+        Notebook name to attach this connection to. Empty leaves the Secret
+        available for workbenches without changing a Notebook.
+      default: ""
+    - name: region
+      type: string
+      description: AWS_DEFAULT_REGION used when the ObjectBucketClaim ConfigMap has no BUCKET_REGION.
+      default: us-east-1
+    - name: cli-image
+      type: string
+      description: OpenShift CLI image available to the cluster.
+      default: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+  results:
+    - name: connection-ref
+      description: Created connection, as secret/name.
+  steps:
+    - name: create-connection
+      image: $(params.cli-image)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        obc_name="$(params.obc-name)"
+        namespace="$(params.namespace)"
+        connection_name="$(params.connection-name)"
+        display_name="$(params.connection-display-name)"
+        workbench_name="$(params.workbench-name)"
+        default_region="$(params.region)"
+
+        if [[ -z "${namespace}" ]]; then
+          namespace="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
+        fi
+        if [[ -z "${connection_name}" ]]; then
+          connection_name="aws-connection-${obc_name}"
+        fi
+        if [[ -z "${display_name}" ]]; then
+          display_name="${connection_name}"
+        fi
+        if [[ -z "${default_region}" ]]; then
+          default_region="us-east-1"
+        fi
+
+        echo "Waiting for ObjectBucketClaim ${obc_name} in ${namespace}"
+        ready=0
+        for _ in $(seq 1 60); do
+          access_key_b64="$(oc get secret "${obc_name}" -n "${namespace}" -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' 2>/dev/null || true)"
+          bucket_name_now="$(oc get configmap "${obc_name}" -n "${namespace}" -o jsonpath='{.data.BUCKET_NAME}' 2>/dev/null || true)"
+          if [[ -n "${access_key_b64}" && -n "${bucket_name_now}" ]]; then
+            ready=1
+            break
+          fi
+          phase="$(oc get objectbucketclaim "${obc_name}" -n "${namespace}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+          echo "Credentials not ready yet (ObjectBucketClaim phase: ${phase:-unknown})"
+          sleep 5
+        done
+        if [[ "${ready}" -ne 1 ]]; then
+          echo "ObjectBucketClaim ${obc_name} in ${namespace} did not publish its Secret and ConfigMap in time" >&2
+          exit 1
+        fi
+
+        access_key="$(oc get secret "${obc_name}" -n "${namespace}" -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d)"
+        secret_key="$(oc get secret "${obc_name}" -n "${namespace}" -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d)"
+        bucket_host="$(oc get configmap "${obc_name}" -n "${namespace}" -o jsonpath='{.data.BUCKET_HOST}')"
+        bucket_port="$(oc get configmap "${obc_name}" -n "${namespace}" -o jsonpath='{.data.BUCKET_PORT}')"
+        bucket_name="$(oc get configmap "${obc_name}" -n "${namespace}" -o jsonpath='{.data.BUCKET_NAME}')"
+        bucket_region="$(oc get configmap "${obc_name}" -n "${namespace}" -o jsonpath='{.data.BUCKET_REGION}')"
+
+        if [[ -z "${access_key}" || -z "${secret_key}" || -z "${bucket_host}" || -z "${bucket_name}" ]]; then
+          echo "ObjectBucketClaim ${obc_name} is missing credentials, bucket host, or bucket name" >&2
+          exit 1
+        fi
+
+        if [[ -n "${bucket_region}" ]]; then
+          region="${bucket_region}"
+        else
+          region="${default_region}"
+        fi
+
+        case "${bucket_host}" in
+          http://*|https://*)
+            endpoint="${bucket_host%/}"
+            ;;
+          *)
+            endpoint="https://${bucket_host}"
+            ;;
+        esac
+        host_without_scheme="${endpoint#http://}"
+        host_without_scheme="${host_without_scheme#https://}"
+        if [[ "${host_without_scheme}" != *:* && -n "${bucket_port}" ]]; then
+          endpoint="${endpoint}:${bucket_port}"
+        fi
+
+        description="S3 connection for OpenShift AI workbenches, generated from ObjectBucketClaim ${obc_name}"
+        secret_file="$(mktemp)"
+        oc create secret generic "${connection_name}" \
+          --namespace "${namespace}" \
+          --type Opaque \
+          --from-literal=AWS_ACCESS_KEY_ID="${access_key}" \
+          --from-literal=AWS_SECRET_ACCESS_KEY="${secret_key}" \
+          --from-literal=AWS_S3_ENDPOINT="${endpoint}" \
+          --from-literal=AWS_S3_BUCKET="${bucket_name}" \
+          --from-literal=AWS_DEFAULT_REGION="${region}" \
+          --dry-run=client -o yaml > "${secret_file}"
+        oc apply -f "${secret_file}"
+        rm -f "${secret_file}"
+
+        oc label secret "${connection_name}" -n "${namespace}" --overwrite \
+          opendatahub.io/dashboard=true \
+          opendatahub.io/managed=true \
+          app.kubernetes.io/part-of=create-kubernetes-object \
+          app.kubernetes.io/created-by=tekton
+        oc annotate secret "${connection_name}" -n "${namespace}" --overwrite \
+          opendatahub.io/connection-type-protocol=s3 \
+          "openshift.io/display-name=${display_name}" \
+          "openshift.io/description=${description}"
+
+        if [[ -n "${workbench_name}" ]]; then
+          connection_ref="${namespace}/${connection_name}"
+          current="$(oc get notebook "${workbench_name}" -n "${namespace}" -o jsonpath="{.metadata.annotations['opendatahub.io/connections']}")"
+          if [[ -z "${current}" ]]; then
+            updated="${connection_ref}"
+          elif [[ ",${current}," == *",${connection_ref},"* ]]; then
+            updated="${current}"
+          else
+            updated="${current},${connection_ref}"
+          fi
+          oc annotate notebook "${workbench_name}" -n "${namespace}" --overwrite \
+            "opendatahub.io/connections=${updated}"
+          echo "Attached ${connection_ref} to workbench ${workbench_name}"
+        fi
+
+        printf 'secret/%s' "${connection_name}" > "$(results.connection-ref.path)"
+        echo "Created secret/${connection_name} in ${namespace} for bucket ${bucket_name}"

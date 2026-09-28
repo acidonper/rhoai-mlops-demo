@@ -1,0 +1,15 @@
+{{- include "project01.validate" . -}}
+{{- range $index, $bucket := .Values.buckets }}
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: {{ $bucket.name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "project01.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $bucket.name }}
+spec:
+  generateBucketName: {{ $bucket.generateBucketName | default $bucket.name }}
+  storageClassName: {{ $bucket.storageClassName | default $.Values.storageClassName }}
+{{- end }}
