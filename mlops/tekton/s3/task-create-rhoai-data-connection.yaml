@@ -44,6 +44,9 @@ spec:
   steps:
     - name: create-connection
       image: $(params.cli-image)
+      # Array params are rejected inside script. Pass them as step arguments.
+      args:
+        - "$(params.workbench-names[*])"
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -147,7 +150,7 @@ spec:
         rm -f "${secret_file}"
 
         connection_ref="${namespace}/${connection_name}"
-        for workbench_name in $(params.workbench-names[*]); do
+        for workbench_name in "$@"; do
           if [[ -z "${workbench_name}" ]]; then
             continue
           fi
