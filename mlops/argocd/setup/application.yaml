@@ -13,7 +13,7 @@ spec:
         exclude: example-*.yaml
     - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
       targetRevision: master
-      path: mlops/argocd/project01
+      path: mlops/argocd/data-science-onboarding
       helm:
         releaseName: project01
   destination:
