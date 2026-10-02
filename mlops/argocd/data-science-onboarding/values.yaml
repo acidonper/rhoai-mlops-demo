@@ -1,7 +1,7 @@
 # Namespace resources are created in .Release.Namespace, which Argo CD sets
 # from the Application destination namespace.
 namespace:
-  create: true
+  create: false
   labels:
     opendatahub.io/dashboard: "true"
 
