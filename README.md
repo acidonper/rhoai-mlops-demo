@@ -1,39 +1,40 @@
 # AI/ML Lifecycle with Red Hat OpenShift AI
 
-Demo of a GitOps path that creates OpenShift Data Foundation buckets and publishes them as Red Hat OpenShift AI S3 data connections.
+This demonstration showcases an MLOps approach for establishing an AI/ML workflow alongside the key components required to execute this strategy:
 
-OpenShift GitOps syncs one Application with two sources into the `project01` namespace:
+- Configure ArgoCD to serve as a functional GitOps tool
+- Set up OpenShift and Openshift AI onboarding mechanisms, including model registry, S3 integrations, and the DataSciencePipelinesApplication server
+- Establish a dedicated workspace to build and deploy production-grade pipelines for platform researchers
 
-1. Tekton tasks, the `create-kubernetes-object` pipeline, and RBAC from `mlops/tekton/s3`.
-2. The `data-science-onboarding` Helm chart from `mlops/argocd/project01`.
+## What gets installed
 
-The chart creates the project namespace, one `ObjectBucketClaim` per bucket, and one PostSync Job per bucket. Each Job starts a PipelineRun. The pipeline waits until ODF publishes the bucket Secret and ConfigMap, then creates the OpenShift AI connection Secret. Each name in `workbenchName` receives that connection in the same PipelineRun.
+1. The `ocp-setup` chart in `mlops/argocd/ocp/setup` creates the OpenShift project, an Argo CD instance in that project, a MySQL-backed model registry, and the `data-science-onboarding` Application. The project name and git source are in `mlops/argocd/ocp/setup/values.yaml`.
+2. That Application syncs two paths into the project namespace:
+   - `mlops/tekton/s3`: the `create-kubernetes-object` pipeline, its tasks, and the service accounts that run them.
+   - `mlops/argocd/data-science-onboarding`: one `ObjectBucketClaim` per bucket, one PostSync Job per bucket, and the `dspa` pipeline server.
+3. Each Job starts a PipelineRun. The pipeline waits until OpenShift Data Foundation publishes the claim Secret and ConfigMap, then writes the OpenShift AI connection Secret. Each name in `workbenchName` receives that connection on the same run.
+4. `researcher-project` holds the workbench notebooks and the training pipeline that use those connections.
+
+`mlops/argocd/ocp/application.yaml` is the Application in `openshift-gitops` that tracks `mlops/argocd/ocp`. The model registry objects land in `rhoai-model-registries`.
 
 ## Layout
 
 | Path | Role |
 | --- | --- |
-| `mlops/argocd/setup` | Argo CD setting up objects |
-| `mlops/argocd/data-science-onboarding/` | Helm chart: namespace, buckets, and one Job per bucket |
-| `mlops/tekton/s3/` | Pipeline, tasks, and service accounts |
-| `mlops/tekton/s3/run-examples/` | Manual PipelineRun examples |
+| `mlops/argocd/ocp/setup` | Project, project Argo CD, model registry, and the onboarding Application |
+| `mlops/argocd/data-science-onboarding` | Buckets, connection Jobs, and the pipeline server |
+| `mlops/tekton/s3` | Pipeline, tasks, and service accounts |
+| `mlops/tekton/s3/run-examples` | Manual PipelineRun examples |
+| `researcher-project/notebooks` | Experiment, save, and request notebooks |
+| `researcher-project/pipelines` | Kubeflow training pipeline |
 
-## Key Scenarios
+## Add a bucket
 
-### Provisioning environment workbenches with direct S3 integration
+List it under `buckets` in `mlops/argocd/data-science-onboarding/values.yaml`. Each entry needs a DNS-1123 `name`. The claim and the S3 bucket are named `<namespace>-<name>`. The next sync creates the claim and the Job `start-connection-<name>`.
 
-Overall sequence:
+Leave `connectionName` empty to use `aws-connection-<obc-name>`. Leave `region` empty to let the pipeline use `us-east-1` when the claim ConfigMap has no `BUCKET_REGION`. Leave `workbenchName` empty to publish the Secret without attaching it. Add one list entry per workbench that should receive the connection.
 
-1. Initialize an Object Storage claim within ODF using automated GitOps workflows
-2. Trigger a dedicated Kubernetes Job during the post-synchronization step:
-2.1 Establish an S3 connection in OpenShift AI, generating the target bucket secret via automated pipelines
-2.2 Bind the active notebook workspace to S3 credentials using metadata annotations
-
-#### Add a bucket
-
-List it under `buckets` in `mlops/argocd/data-science-onboarding/values.yaml`. Each entry needs a DNS-1123 `name`. The next sync creates the claim `ObjectBucketClaim` and the Job `start-connection-<name>`.
-
-Leave `connectionName` empty to use `aws-connection-<name>`. Leave `region` empty to use the chart `region`. Leave `workbenchName` empty to publish the Secret without attaching it. Add one list entry per workbench that should receive the connection.
+The pipeline server stores artifacts in `<namespace>-pipelines` and reads credentials from `aws-connection-pipelines`. Its NooBaa endpoint is `objectStorage` in the same values file.
 
 ## Requirements
 
