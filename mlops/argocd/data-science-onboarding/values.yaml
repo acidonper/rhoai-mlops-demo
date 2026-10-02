@@ -30,13 +30,11 @@ pipeline:
 buckets:
   - name: models # real name is {{ $.Release.Namespace }}-models
     connectionName: aws-connection-models
-    connectionDisplayName: "Models bucket for test-workbenches"
     workbenchName:
       - test-workbench
       - test-workbench-1
     region: ""
   - name: pipelines # real name is {{ $.Release.Namespace }}-pipelines
     connectionName: aws-connection-pipelines
-    connectionDisplayName: "Pipelines artifacts buckets"
     workbenchName: []
     region: ""

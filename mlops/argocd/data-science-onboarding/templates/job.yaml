@@ -40,7 +40,7 @@ spec:
             - name: CONNECTION_NAME
               value: {{ $bucket.connectionName | default "" }}
             - name: CONNECTION_DISPLAY_NAME
-              value: {{ $bucket.connectionDisplayName | default "" }}
+              value: {{ $bucket.connectionName | default "" }}
             - name: REGION
               value: {{ $bucket.region | default $.Values.region }}
           command: ["/bin/bash", "-c"]
