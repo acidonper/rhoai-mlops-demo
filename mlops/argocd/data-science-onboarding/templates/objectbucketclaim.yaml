@@ -11,5 +11,5 @@ metadata:
     app.kubernetes.io/component: {{ $bucket.name }}
 spec:
   bucketName: {{ $.Release.Namespace }}-{{ $bucket.name }}
-  storageClassName: {{ $bucket.storageClassName | default $.Values.storageClassName }}
+  storageClassName: {{ $.Values.objectStorage.storageClassName }}
 {{- end }}

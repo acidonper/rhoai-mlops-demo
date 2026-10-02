@@ -5,8 +5,14 @@ namespace:
   labels:
     opendatahub.io/dashboard: "true"
 
-storageClassName: openshift-storage.noobaa.io
-region: example
+# Endpoint published by NooBaa for storageClassName. The ObjectBucketClaim
+# ConfigMap repeats these as BUCKET_HOST and BUCKET_PORT. Credentials stay in
+# the Secret of the same name as the claim.
+objectStorage:
+  host: s3.openshift-storage.svc
+  port: "443"
+  storageClassName: openshift-storage.noobaa.io
+  region: ""
 
 pipeline:
   application: rhoai-odf-connection
