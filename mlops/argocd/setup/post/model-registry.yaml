@@ -1,21 +1,20 @@
-{{- include "project01.validate" . -}}
 ---
 apiVersion: modelregistry.opendatahub.io/v1beta1
 kind: ModelRegistry
 metadata:
   annotations:
-    openshift.io/description: '{{ $.Release.Namespace }} Model Registry'
-    openshift.io/display-name: registry
-  name: registry
-  namespace: {{ $.Release.Namespace }}
+    openshift.io/description: 'project01 Model Registry'
+    openshift.io/display-name: project01-registry
+  name: project01-registry
+  namespace: rhoai-model-registries
   finalizers:
-    - modelregistry.opendatahub.io/finalizer
+    - modelregisary.opendatahub.io/finalizer
 spec:
   grpc:
     port: 9090
   mysql:
     database: metadb
-    host: registry-db.{{ $.Release.Namespace }}.svc.cluster.local
+    host: registry-db.project01.svc.cluster.local
     passwordSecret:
       key: database-password
       name: registry-db
