@@ -9,6 +9,8 @@ spec:
     - repoURL: {{ $.Values.gitRepo.url }}
       targetRevision: {{ $.Values.gitRepo.revision }}
       path: mlops/tekton/s3
+      directory:
+        exclude: example-*.yaml
     - repoURL: {{ $.Values.gitRepo.url }}
       targetRevision: {{ $.Values.gitRepo.revision }}
       path: mlops/argocd/data-science-onboarding
