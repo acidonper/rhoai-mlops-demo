@@ -7,7 +7,7 @@ metadata:
     openshift.io/description: '{{ $.Release.Namespace }} Model Registry'
     openshift.io/display-name: registry
   name: registry
-  namespace: rhoai-model-registries
+  namespace: {{ $.Release.Namespace }}
   finalizers:
     - modelregistry.opendatahub.io/finalizer
 spec:
