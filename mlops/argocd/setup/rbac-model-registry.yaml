@@ -1,0 +1,34 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-modelregistry-manager
+  namespace: rhoai-model-registries
+rules:
+  - apiGroups:
+      - "modelregistry.opendatahub.io"
+    resources:
+      - "modelregistries"
+      - "modelregistries/status"
+      - "modelregistries/finalizers"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-modelregistry-binding
+  namespace: rhoai-model-registries
+subjects:
+  - kind: ServiceAccount
+    name: argocd-argocd-application-controller
+    namespace: project01
+roleRef:
+  kind: Role
+  name: argocd-modelregistry-manager
+  apiGroup: rbac.authorization.k8s.io
