@@ -1,0 +1,49 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  annotations:
+    modelFormat: onnx
+    security.opendatahub.io/enable-auth: 'false'
+    opendatahub.io/hardware-profile-resource-version: '34201'
+    openshift.io/description: ''
+    openshift.io/display-name: jukebox
+    serving.kserve.io/deploymentMode: Standard
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+    opendatahub.io/hardware-profile-name: default-profile
+    opendatahub.io/connection-path: models/jukebox
+    opendatahub.io/connections: jukebox
+    opendatahub.io/model-type: predictive
+  labels:
+    modelregistry.opendatahub.io/inference-service-id: '4'
+    modelregistry.opendatahub.io/model-version-id: '2'
+    modelregistry.opendatahub.io/name: project01-registry
+    modelregistry.opendatahub.io/registered-model-id: '1'
+    networking.kserve.io/visibility: exposed
+    opendatahub.io/dashboard: 'true'
+  name: jukebox
+  namespace: project01
+spec:
+  predictor:
+    automountServiceAccountToken: false
+    deploymentStrategy:
+      type: Recreate
+    maxReplicas: 1
+    minReplicas: 1
+    model:
+      modelFormat:
+        name: onnx
+        version: '1'
+      name: ''
+      resources:
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        requests:
+          cpu: '2'
+          memory: 4Gi
+      runtime: jukebox
+      storage:
+        key: jukebox
+        path: models/jukebox
+    serviceAccountName: jukebox-sa
+    timeout: 30

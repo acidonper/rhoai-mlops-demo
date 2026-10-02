@@ -2,7 +2,7 @@ kind: ArgoCD
 apiVersion: argoproj.io/v1beta1
 metadata:
   name: argocd
-  namespace: project01
+  namespace: {{ $.Values.namespace.name }}
 spec:
   controller:
     resources:

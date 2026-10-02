@@ -1,10 +1,9 @@
-{{- include "project01.validate" . -}}
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: registry-db
-  namespace: {{ $.Release.Namespace }}
+  name: registry-db-{{ $.Values.namespace.name }}
+  namespace: rhoai-model-registries
   labels:
     component: db
 spec:
@@ -24,7 +23,7 @@ spec:
       volumes:
         - name: metadata-mysql
           persistentVolumeClaim:
-            claimName: metadata-mysql
+            claimName: metadata-mysql-{{ $.Values.namespace.name }}
       containers:
         - resources: {}
           readinessProbe:
@@ -51,9 +50,9 @@ spec:
           terminationMessagePolicy: File
           envFrom:
             - configMapRef:
-                name: registry-db-parameters
+                name: registry-db-parameters-{{ $.Values.namespace.name }}
             - secretRef:
-                name: registry-db-secrets
+                name: registry-db-{{ $.Values.namespace.name }}
           image: "mysql:8.0.3"
           args:
             - '--datadir'

@@ -1,0 +1,62 @@
+---
+apiVersion: modelregistry.opendatahub.io/v1beta1
+kind: ModelRegistry
+metadata:
+  annotations:
+    openshift.io/description: '{{ $.Values.namespace.name }} Model Registry'
+    openshift.io/display-name: {{ $.Values.namespace.name }}-registry
+  name: {{ $.Values.namespace.name }}-registry
+  namespace: rhoai-model-registries
+  finalizers:
+    - modelregisary.opendatahub.io/finalizer
+spec:
+  grpc:
+    port: 9090
+  mysql:
+    database: metadb
+    host: registry-db.rhoai-model-registries.svc.cluster.local
+    passwordSecret:
+      key: database-password
+      name: registry-db-{{ $.Values.namespace.name }}-secret
+    port: 3306
+    username: root
+  oauthProxy:
+    port: 8443
+    routePort: 443
+    serviceRoute: enabled
+  rest:
+    port: 8080
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    serviceRoute: disabled
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: service-viewer
+  namespace: rhoai-model-registries
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+{{- range $workbench := $.Values.namespace.workbenches }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: test-workbench-service-viewer-binding
+  namespace: rhoai-model-registries
+subjects:
+  - kind: ServiceAccount
+    name: {{ $workbench.name }}
+    namespace: {{ $.Values.namespace.name }}
+roleRef:
+  kind: Role
+  name: service-viewer
+  apiGroup: rbac.authorization.k8s.io   
+{{- end }}

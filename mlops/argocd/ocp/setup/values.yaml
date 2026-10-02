@@ -1,0 +1,10 @@
+namespace:
+  name: project01
+
+  workbenches:
+    - name: test-workbench
+    - name: test-workbench-1
+
+gitRepo:
+  url: https://github.com/acidonper/rhoai-mlops-demo.git
+  revision: master
