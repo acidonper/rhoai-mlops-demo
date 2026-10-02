@@ -36,13 +36,13 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: OBC_NAME
-              value: {{ $bucket.name | quote }}
+              value: {{ $.Release.Namespace }}-{{ $bucket.name }}
             - name: CONNECTION_NAME
-              value: {{ $bucket.connectionName | default "" | quote }}
+              value: {{ $bucket.connectionName | default "" }}
             - name: CONNECTION_DISPLAY_NAME
-              value: {{ $bucket.connectionDisplayName | default "" | quote }}
+              value: {{ $bucket.connectionDisplayName | default "" }}
             - name: REGION
-              value: {{ $bucket.region | default $.Values.region | quote }}
+              value: {{ $bucket.region | default $.Values.region }}
           command: ["/bin/bash", "-c"]
           args:
             - |

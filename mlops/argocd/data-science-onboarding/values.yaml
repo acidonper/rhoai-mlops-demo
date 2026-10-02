@@ -20,18 +20,17 @@ pipeline:
 
 # Each entry creates an ObjectBucketClaim and a Job that starts the pipeline.
 # connectionName empty uses aws-connection-<name> inside the pipeline task.
+# final name of the bucket is the name of the namespace + the name of the bucket
 buckets:
-  - name: s3bucket-models-test-workbenches
-    generateBucketName: s3bucket-models-test-workbenches
-    connectionName: aws-connection-models-test-workbenches
+  - name: models # real name is {{ $.Release.Namespace }}-models
+    connectionName: aws-connection-models
     connectionDisplayName: "Models bucket for test-workbenches"
     workbenchName:
       - test-workbench
       - test-workbench-1
     region: ""
-  # - name: s3bucket
-  #   generateBucketName: s3bucket
-  #   connectionName: ""
-  #   connectionDisplayName: ""
-  #   workbenchName: []
-  #   region: ""
+  - name: pipelines # real name is {{ $.Release.Namespace }}-pipelines
+    connectionName: aws-connection-pipelines
+    connectionDisplayName: "Pipelines artifacts buckets"
+    workbenchName: []
+    region: ""
