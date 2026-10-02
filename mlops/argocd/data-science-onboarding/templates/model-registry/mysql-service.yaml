@@ -1,0 +1,18 @@
+{{- include "project01.validate" . -}}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: registry-db
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    component: db
+spec:
+  ports:
+    - name: dbapi
+      protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+  selector:
+    component: db
