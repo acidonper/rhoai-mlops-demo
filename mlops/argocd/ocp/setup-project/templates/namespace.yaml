@@ -1,7 +1,7 @@
-kind: Project
-apiVersion: project.openshift.io/v1
-metadata:
-  name: {{ $.Values.namespace.name }}
-  labels:
-    kubernetes.io/metadata.name: {{ $.Values.namespace.name }}
-    opendatahub.io/dashboard: 'true'
+#kind: Project
+#apiVersion: project.openshift.io/v1
+#metadata:
+#  name: {{ $.Values.namespace.name }}
+#  labels:
+#    kubernetes.io/metadata.name: {{ $.Values.namespace.name }}
+#    opendatahub.io/dashboard: 'true'
