@@ -1,0 +1,18 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-gitops-operator
+  namespace: openshift-gitops-operator
+spec:
+  channel: latest
+  name: openshift-gitops-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  config:
+    env:
+      # Optional: Disable the default instance if you only want user-defined instances
+      - name: DISABLE_DEFAULT_ARGOCD_INSTANCE
+        value: "true"
+      # Grant cluster configuration access to your targeted Argo CD namespace
+      - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
+        value: "project01"
