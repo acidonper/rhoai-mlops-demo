@@ -14,7 +14,7 @@ spec:
     port: 9090
   mysql:
     database: metadb
-    host: registry-db.rhoai-model-registries.svc.cluster.local
+    host: registry-db-{{ $.Values.namespace.name }}.rhoai-model-registries.svc.cluster.local
     passwordSecret:
       key: database-password
       name: registry-db-{{ $.Values.namespace.name }}-secret
