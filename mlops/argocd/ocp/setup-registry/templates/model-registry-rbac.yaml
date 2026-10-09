@@ -1,0 +1,34 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitops-model-registry-manager
+  namespace: rhoai-model-registries # Target namespace where you want the CRDs built
+rules:
+  - apiGroups:
+      - "modelregistry.opendatahub.io"
+    resources:
+      - "modelregistries"
+      - "modelregistries/status"
+      - "modelregistries/finalizers"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitops-model-registry-manager-binding
+  namespace: rhoai-model-registries
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops # The home namespace of the default controller
+roleRef:
+  kind: Role
+  name: gitops-model-registry-manager
+  apiGroup: rbac.authorization.k8s.io
