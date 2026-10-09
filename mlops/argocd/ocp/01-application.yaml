@@ -11,7 +11,7 @@ spec:
       path: mlops/argocd/ocp/setup
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: "*"
   syncPolicy:
     automated:
       prune: true
