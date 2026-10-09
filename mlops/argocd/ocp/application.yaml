@@ -8,7 +8,7 @@ spec:
   sources:
     - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
       targetRevision: master
-      path: mlops/argocd/ocp
+      path: mlops/argocd/ocp/setup
   destination:
     server: https://kubernetes.default.svc
     namespace: default
