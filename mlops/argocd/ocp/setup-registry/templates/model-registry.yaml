@@ -12,6 +12,10 @@ metadata:
 spec:
   grpc:
     port: 9090
+  kubeRBACProxy:
+    port: 8443
+    routePort: 443
+    serviceRoute: enabled
   mysql:
     database: metadb
     host: registry-db-{{ $.Values.namespace.name }}.rhoai-model-registries.svc.cluster.local
@@ -19,11 +23,8 @@ spec:
       key: database-password
       name: registry-db-{{ $.Values.namespace.name }}-secret
     port: 3306
+    skipDBCreation: false
     username: root
-  oauthProxy:
-    port: 8443
-    routePort: 443
-    serviceRoute: enabled
   rest:
     port: 8080
     resources:
