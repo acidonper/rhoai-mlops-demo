@@ -10,9 +10,5 @@ spec:
   sourceNamespace: openshift-marketplace
   config:
     env:
-      # Optional: Disable the default instance if you only want user-defined instances
-      - name: DISABLE_DEFAULT_ARGOCD_INSTANCE
-        value: "true"
-      # Grant cluster configuration access to your targeted Argo CD namespace
       - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
-        value: "project01"
+        value: "project01,rhoai-model-registries"
