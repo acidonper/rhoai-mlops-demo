@@ -7,8 +7,6 @@ metadata:
     openshift.io/display-name: {{ $.Values.namespace.name }}-registry
   name: {{ $.Values.namespace.name }}-registry
   namespace: rhoai-model-registries
-  finalizers:
-    - modelregisary.opendatahub.io/finalizer
 spec:
   grpc:
     port: 9090
