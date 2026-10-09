@@ -49,7 +49,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: test-workbench-service-viewer-binding
+  name: test-workbench-service-viewer-binding-{{ $workbench.name }}
   namespace: rhoai-model-registries
 subjects:
   - kind: ServiceAccount
