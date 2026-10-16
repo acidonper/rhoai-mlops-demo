@@ -36,10 +36,13 @@ def fetch_data(
         region_name=s3_region,
         verify=False
     )
-    s3_client.download_file(s3_bucket_name, 'datasets/song_properties.parquet', 'song_properties.parquet')
-    s3_client.download_file(s3_bucket_name, 'datasets/song_rankings.parquet', 'song_rankings.parquet')
-    song_properties = pd.read_parquet('song_properties.parquet')
-    song_rankings = pd.read_parquet('song_rankings.parquet')
+
+    prop_path = '/tmp/song_properties.parquet'
+    rank_path = '/tmp/song_rankings.parquet'
+    s3_client.download_file(s3_bucket_name, 'datasets/song_properties.parquet', prop_path)
+    s3_client.download_file(s3_bucket_name, 'datasets/song_rankings.parquet', rank_path)
+    song_properties = pd.read_parquet(prop_path)
+    song_rankings = pd.read_parquet(rank_path)
 
     # song_properties = pd.read_parquet('https://github.com/rhoai-mlops/jukebox/raw/refs/heads/main/99-data_prep/song_properties.parquet')
     # song_rankings = pd.read_parquet('https://github.com/rhoai-mlops/jukebox/raw/refs/heads/main/99-data_prep/song_rankings.parquet')
