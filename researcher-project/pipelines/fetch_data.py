@@ -9,7 +9,7 @@ from kfp.dsl import (
     Metrics,
 )
 
-@component(base_image='python:3.9', packages_to_install=["dask[dataframe]==2024.8.0", "s3fs==2025.2.0", "pandas==2.2.3", "boto3==1.38.62"])
+@component(base_image='python:3.9', packages_to_install=["dask[dataframe]==2024.8.0", "s3fs==2025.2.0", "pandas==2.2.3", "boto3==1.38.46"])
 def fetch_data(
     dataset: Output[Dataset]
 ):
