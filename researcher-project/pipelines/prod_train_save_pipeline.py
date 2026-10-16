@@ -14,7 +14,7 @@ from kfp import kubernetes
 import os
 
 # Component imports
-from fetch_data import fetch_data, fetch_data_from_dvc, fetch_data_from_feast
+from fetch_data import fetch_data
 from data_validation import validate_data
 from data_preprocessing import preprocess_data
 from train_model import train_model, convert_keras_to_onnx
@@ -35,7 +35,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
     ### 🐶 Fetch Data from GitHub
     fetch_task = fetch_data()
     kubernetes.use_secret_as_env(
-        register_model_task,
+        fetch_task,
         secret_name=data_connection_secret_name_models,
         secret_key_to_env={
             'AWS_S3_ENDPOINT': 'AWS_S3_ENDPOINT_MODEL',
