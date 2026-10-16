@@ -13,7 +13,7 @@ spec:
         exclude: example-*.yaml
     - repoURL: {{ $.Values.gitRepo.url }}
       targetRevision: {{ $.Values.gitRepo.revision }}
-      path: mlops/argocd/data-science-onboarding
+      path: mlops/helm/data-science-onboarding
       helm:
         releaseName: {{ $.Values.namespace.name }}
   destination:

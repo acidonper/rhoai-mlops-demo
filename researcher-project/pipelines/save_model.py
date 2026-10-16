@@ -54,6 +54,8 @@ def push_to_model_registry(
             aws_access_key_id=s3_access_key,
             aws_secret_access_key=s3_secret_key,
             endpoint_url=s3_endpoint_url,
+            region_name=s3_region,
+            verify=False
         )
 
         def _generate_artifact_name(artifact_file_name, version=''):

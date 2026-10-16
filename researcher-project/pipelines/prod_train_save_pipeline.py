@@ -23,7 +23,8 @@ from save_model import push_to_model_registry
 
 ######### Pipeline definition #########
 
-data_connection_secret_name = 'aws-connection-models'
+data_connection_secret_name_pipelines = 'aws-connection-pipelines'
+data_connection_secret_name_models = 'aws-connection-models'
 
 # Create pipeline
 @dsl.pipeline(
@@ -33,10 +34,17 @@ data_connection_secret_name = 'aws-connection-models'
 def training_pipeline(hyperparameters: dict, model_name: str, version: str, cluster_domain: str, model_storage_pvc: str, prod_flag: bool):
     ### 🐶 Fetch Data from GitHub
     fetch_task = fetch_data()
-
-    ### 🍇 Fetch Data from DVC
-
-    ### 🛍️ Fetch Data from Feast
+    kubernetes.use_secret_as_env(
+        register_model_task,
+        secret_name=data_connection_secret_name_models,
+        secret_key_to_env={
+            'AWS_S3_ENDPOINT': 'AWS_S3_ENDPOINT_MODEL',
+            'AWS_ACCESS_KEY_ID': 'AWS_ACCESS_KEY_ID_MODEL',
+            'AWS_SECRET_ACCESS_KEY': 'AWS_SECRET_ACCESS_KEY_MODEL',
+            'AWS_S3_BUCKET': 'AWS_S3_BUCKET_MODEL',
+            'AWS_DEFAULT_REGION': 'AWS_DEFAULT_REGION_MODEL',
+        },
+    )
 
     # Validate Data
     data_validation_task = validate_data(dataset = fetch_task.outputs["dataset"])
@@ -97,7 +105,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
     )
     kubernetes.use_secret_as_env(
         register_model_task,
-        secret_name=data_connection_secret_name,
+        secret_name=data_connection_secret_name_pipelines,
         secret_key_to_env={
             'AWS_S3_ENDPOINT': 'AWS_S3_ENDPOINT',
             'AWS_ACCESS_KEY_ID': 'AWS_ACCESS_KEY_ID',
