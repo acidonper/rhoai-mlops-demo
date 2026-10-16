@@ -20,6 +20,7 @@ def fetch_data(
     import pandas as pd
     import yaml
     from os import environ
+    from boto3 import client
 
     s3_endpoint_url = environ.get('AWS_S3_ENDPOINT_MODEL')
     s3_access_key = environ.get('AWS_ACCESS_KEY_ID_MODEL')
