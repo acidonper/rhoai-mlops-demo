@@ -13,7 +13,16 @@ cd mlops/ocp
 
 The script creates the `openshift-gitops-operator` and `project01` namespaces, subscribes to the GitOps operator, and applies two Applications. Names to change for another cluster are listed in [mlops/ocp/README.md](mlops/ocp/README.md).
 
-## What the sync creates
+### ArgoCD Instances
+
+Following completion of the setup phase, you can log into these ArgoCD deployments for verification:
+
+- Target namespace `openshift-gitops` featuring the `openshift-gitops` instance (e.g. https://openshift-gitops-server-openshift-gitops.apps.ocp.b5frx.sandbox1967.opentlc.com/).
+- Target namespace `project01` featuring the `argocd` instance (e.g. https://argocd-server-project01.apps.ocp.b5frx.sandbox1967.opentlc.com/)
+
+IMPORTANT: Authenticate using the administrative credentials from the `ArgoCDInstance`-cluster secret.
+
+### What the sync creates
 
 `ocp-setup-project` renders [mlops/helm/setup-project](mlops/helm/setup-project). That chart installs an Argo CD instance in `project01` and the Application `data-science-onboarding`.
 
@@ -26,7 +35,7 @@ Each Job starts a PipelineRun. The run waits until OpenShift Data Foundation pub
 
 `ocp-setup-registry` renders [mlops/helm/setup-registry](mlops/helm/setup-registry) into `rhoai-model-registries`: MySQL and a `ModelRegistry` named `project01-registry`.
 
-## Lab names
+### Lab names
 
 | Item | Value |
 | --- | --- |
@@ -37,6 +46,26 @@ Each Job starts a PipelineRun. The run waits until OpenShift Data Foundation pub
 | Workbenches | `test-workbench`, `test-workbench-1` |
 | Buckets | `project01-models`, `project01-pipelines` |
 | Connections | `aws-connection-models`, `aws-connection-pipelines` |
+
+### Add a bucket
+
+Add an entry under `buckets` in [`mlops/helm/data-science-onboarding/values.yaml`](mlops/helm/data-science-onboarding/values.yaml). The next sync creates the claim `<namespace>-<name>` and the Job `start-connection-<name>`. Field rules are in the [chart README](mlops/helm/data-science-onboarding/README.md).
+
+## Train and call the model
+
+After ArgoCD instances provision all necessary prerequisites, you can begin the model training phase. As an initial step, set up a fresh workbench within the OpenShift AI dashboard under the `project01` namespace, ensuring it integrates the `aws-connection-models` data connection (you can log in via your Openshift AI environment route, e.g., https://rh-ai.apps.ocp.b5frx.sandbox1967.opentlc.com/projects/project01).
+
+Apply the workbench yourself, then follow [researcher-project/README.md](researcher-project/README.md). 
+
+IMPORTANT: The notebooks and the training pipeline expect `aws-connection-models`, `aws-connection-pipelines`, and `project01-registry` to exist.
+
+## Requirements
+
+- Red Hat OpenShift
+- Red Hat OpenShift AI, with the model registry component so the `rhoai-model-registries` namespace exists
+- OpenShift Data Foundation, with the storage class set in `values.yaml` (`openshift-storage.noobaa.io` by default)
+- OpenShift Pipelines
+- OpenShift GitOps
 
 ## Layout
 
@@ -50,21 +79,6 @@ Each Job starts a PipelineRun. The run waits until OpenShift Data Foundation pub
 | `mlops/tekton/s3/run-examples` | PipelineRuns to create by hand |
 | [`researcher-project`](researcher-project/README.md) | Notebooks, training pipeline, and sample workbench manifests |
 
-## Add a bucket
-
-Add an entry under `buckets` in [`mlops/helm/data-science-onboarding/values.yaml`](mlops/helm/data-science-onboarding/values.yaml). The next sync creates the claim `<namespace>-<name>` and the Job `start-connection-<name>`. Field rules are in the [chart README](mlops/helm/data-science-onboarding/README.md).
-
-## Train and call the model
-
-Apply the workbench yourself, then follow [researcher-project/README.md](researcher-project/README.md). The notebooks and the training pipeline expect `aws-connection-models`, `aws-connection-pipelines`, and `project01-registry` to exist.
-
-## Requirements
-
-- Red Hat OpenShift
-- Red Hat OpenShift AI, with the model registry component so the `rhoai-model-registries` namespace exists
-- OpenShift Data Foundation, with the storage class set in `values.yaml` (`openshift-storage.noobaa.io` by default)
-- OpenShift Pipelines
-- OpenShift GitOps
 
 ## Author
 
