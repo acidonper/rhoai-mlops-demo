@@ -12,3 +12,8 @@ GitOps manifests that prepare one OpenShift AI project for the jukebox lab. The 
 `setup-project` then installs a second Argo CD in the project. That instance syncs [`tekton/s3`](tekton/s3/README.md) and [`helm/data-science-onboarding`](helm/data-science-onboarding/README.md).
 
 Researcher notebooks and the training pipeline are in [`../researcher-project`](../researcher-project/README.md). Those files stay out of this sync.
+
+
+## Author
+
+Asier Cidon @RedHat

@@ -56,3 +56,7 @@ The chart rejects a missing `name`, a `name` that is not a DNS-1123 label, a `na
 ## Pipeline server bucket
 
 Keep a bucket entry that publishes `aws-connection-pipelines` for `<namespace>-pipelines`. The `dspa` manifest references that Secret and that bucket by those names.
+
+## Author
+
+Asier Cidon @RedHat

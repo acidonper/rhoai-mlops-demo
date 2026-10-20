@@ -23,3 +23,7 @@ The tekton source syncs YAML in `mlops/tekton/s3` and sets `directory.exclude` t
 | `gitRepo.revision` | Revision both sources track (`master`). |
 
 `namespace.workbenches` is present in `values.yaml` and is unused by this chart. The registry chart reads the same list; see [../setup-registry/README.md](../setup-registry/README.md). Workbench attachment for S3 connections is `buckets[].workbenchName` in the [onboarding chart](../data-science-onboarding/README.md).
+
+## Author
+
+Asier Cidon @RedHat

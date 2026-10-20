@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: model-registry-client-role
+  namespace: rhoai-model-registries
+rules:
+  # Allow discovering Model Registry service endpoints
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  # Allow interacting with Kubeflow / OpenDataHub Model Registry CRDs
+  - apiGroups: ["modelregistry.opendatahub.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: model-registry-client-binding
+  namespace: rhoai-model-registries
+subjects:
+  - kind: ServiceAccount
+    name: pipeline-runner-dspa
+    namespace: {{ .Values.namespace.name }}
+roleRef:
+  kind: Role
+  name: model-registry-client-role
+  apiGroup: rbac.authorization.k8s.io

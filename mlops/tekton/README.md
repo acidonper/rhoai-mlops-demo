@@ -66,3 +66,7 @@ oc apply -n project01 \
   -f mlops/tekton/s3/task-create-rhoai-data-connection.yaml \
   -f mlops/tekton/s3/pipeline.yaml
 ```
+
+## Author
+
+Asier Cidon @RedHat

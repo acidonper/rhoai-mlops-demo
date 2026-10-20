@@ -44,3 +44,7 @@ What each chart installs is described in [../helm/README.md](../helm/README.md).
 | `02-application-registry.yaml` | `repoURL` and `targetRevision` |
 
 The same project name, repository, and revision also appear in [`../helm/setup-project/values.yaml`](../helm/setup-project/values.yaml) and [`../helm/setup-registry/values.yaml`](../helm/setup-registry/values.yaml).
+
+## Author
+
+Asier Cidon @RedHat

@@ -45,13 +45,22 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
             'AWS_DEFAULT_REGION': 'AWS_DEFAULT_REGION_MODEL',
         },
     )
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    fetch_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    fetch_task.set_env_variable("AWS_CA_BUNDLE", "")
 
     # Validate Data
     data_validation_task = validate_data(dataset = fetch_task.outputs["dataset"])
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    data_validation_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    data_validation_task.set_env_variable("AWS_CA_BUNDLE", "")
 
     # Pre-process Data
     pre_processing_task = preprocess_data(in_data = fetch_task.outputs["dataset"])
     pre_processing_task.after(data_validation_task)
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    pre_processing_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    pre_processing_task.set_env_variable("AWS_CA_BUNDLE", "")
 
     # Train Keras model
     training_task = train_model(
@@ -60,9 +69,15 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         scaler = pre_processing_task.outputs["scaler"],
         hyperparameters = hyperparameters,
     )
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    training_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    training_task.set_env_variable("AWS_CA_BUNDLE", "")
 
     # Convert Keras model to ONNX
     convert_task = convert_keras_to_onnx(keras_model = training_task.outputs["trained_model"])
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    convert_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    convert_task.set_env_variable("AWS_CA_BUNDLE", "")
 
     # Evaluate Keras model performance
     model_evaluation_task = evaluate_keras_model_performance(
@@ -80,6 +95,10 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         env_name='NAMESPACE',
         field_path='metadata.namespace'
     )
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    model_evaluation_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    model_evaluation_task.set_env_variable("AWS_CA_BUNDLE", "")
+
 
     # Validate that the Keras -> ONNX conversion was successful
     model_validation_task = validate_onnx_model(
@@ -88,6 +107,9 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         test_data = pre_processing_task.outputs["test_data"],
         scaler = pre_processing_task.outputs["scaler"],
     )
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    model_validation_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    model_validation_task.set_env_variable("AWS_CA_BUNDLE", "")
 
     # Register model to the Model Registry
     register_model_task = push_to_model_registry(
@@ -114,13 +136,17 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
             'AWS_DEFAULT_REGION': 'AWS_DEFAULT_REGION',
         },
     )
+    
     # Set PVC to store model artifacts
     register_model_task.after(model_validation_task)
-    kubernetes.mount_pvc(
-        register_model_task,
-        pvc_name=model_storage_pvc,
-        mount_path='/models',
-    )
+    # kubernetes.mount_pvc(
+    #     register_model_task,
+    #     pvc_name=model_storage_pvc,
+    #     mount_path='/models',
+    # )
+    # Disable SSL verification for Python AWS/boto3 SDKs inside the component
+    register_model_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    register_model_task.set_env_variable("AWS_CA_BUNDLE", "")
     
 
 if __name__ == '__main__':

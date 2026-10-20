@@ -15,3 +15,7 @@ In `2-save_model.ipynb`, set `username` to the project name (`project01`) and `c
 In `3-request_model.ipynb`, set `infer_endpoint` to the InferenceService route, for example `https://jukebox-<apps-domain>`. The request URL is `<infer_endpoint>/v2/models/jukebox/infer`. Apply [`../argocd/inferenceservice.yaml`](../argocd/inferenceservice.yaml) once a registered ONNX artifact is available at `models/jukebox`, and confirm the runtime and hardware profile in that file.
 
 The last section of notebook 3 points at [`../pipelines/prod_train_save_pipeline.py`](../pipelines/prod_train_save_pipeline.py). Set `cluster_domain` there too, then submit the run from the workbench as described in [the pipeline README](../pipelines/README.md).
+
+## Author
+
+Asier Cidon @RedHat

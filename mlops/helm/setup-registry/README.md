@@ -35,3 +35,7 @@ Each name in `namespace.workbenches` becomes a RoleBinding in `rhoai-model-regis
 ## Lab password
 
 The MySQL Secrets in this chart use the lab password `test` and the user `root`. Replace them before using the registry outside this demo.
+
+## Author
+
+Asier Cidon @RedHat

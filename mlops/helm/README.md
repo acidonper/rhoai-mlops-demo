@@ -9,3 +9,7 @@ Three charts. The default Argo CD instance in `openshift-gitops` syncs the first
 | [`data-science-onboarding`](data-science-onboarding/README.md) | Application `data-science-onboarding` | ObjectBucketClaims, the Jobs that publish OpenShift AI connections, and the `dspa` pipeline server |
 
 `setup-project` and `setup-registry` both read a `namespace.name` of `project01`. Keep those two values files, [`../ocp/setup.sh`](../ocp/setup.sh), and [`../ocp/01-application-project.yaml`](../ocp/01-application-project.yaml) on the same project name.
+
+## Author
+
+Asier Cidon @RedHat

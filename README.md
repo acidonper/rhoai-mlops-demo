@@ -79,7 +79,6 @@ IMPORTANT: The notebooks and the training pipeline expect `aws-connection-models
 | `mlops/tekton/s3/run-examples` | PipelineRuns to create by hand |
 | [`researcher-project`](researcher-project/README.md) | Notebooks, training pipeline, and sample workbench manifests |
 
-
 ## Author
 
 Asier Cidon @RedHat

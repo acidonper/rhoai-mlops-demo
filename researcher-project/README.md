@@ -21,6 +21,34 @@ Workbench notebooks and the Kubeflow pipeline for the jukebox model: a Keras net
 
 `argocd/inferenceservice.yaml` is the serving object for notebook 3. It was exported from the same lab. It expects an ONNX model at storage path `models/jukebox`, a serving runtime named `jukebox`, and model-registry labels for `project01-registry`.
 
-## Workbench order
+## Data Scientist Step
 
-Follow [notebooks/README.md](notebooks/README.md), then submit the pipeline described in [pipelines/README.md](pipelines/README.md).
+### Try notebooks manually 
+
+This phase aims to train and build an AI model leveraging a dedicated DEV workbench pipeline within Jupyter notebooks.
+
+Follow [notebooks/README.md](notebooks/README.md), then submit the pipeline described in [pipelines/README.md](pipelines/README.md). 
+
+## Datascience Workflow
+
+This phase centers on establishing an automated framework for model training, building, and deployment. Pipelines and GitOps serve as critical pillars, and the objective is to deploy and configure both tooling components.
+
+Please execute the following actions:
+
+- Specify the target domain inside the `researcher-project/mlops/ops/values.yaml` file.
+- Commit and push these updates to your remote repository.
+
+```$bash
+git push
+```
+
+- Provision the corresponding ArgoCD Application objects to spin up all required pipelines and infrastructure resources.
+
+```$bash
+oc apply -f researcher-project/mlops/argocd/application-ml.yaml
+oc apply -f researcher-project/mlops/argocd/application-ops.yaml
+```
+
+## Author
+
+Asier Cidon @RedHat
