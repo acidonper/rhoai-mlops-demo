@@ -49,6 +49,30 @@ oc apply -f researcher-project/mlops/argocd/application-ml.yaml
 oc apply -f researcher-project/mlops/argocd/application-ops.yaml
 ```
 
+- After reviewing both Application are synced in ArgoCD, execute the following emulation
+
+```$bash
+curl -sk -X POST \
+  "https://el-ct-listener-project01.apps.ocp.b5frx.sandbox1967.opentlc.com" \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -H "X-GitHub-Delivery: $(uuidgen)" \
+  -H "User-Agent: GitHub-Hookshot/curl" \
+  -d '{
+    "ref": "refs/heads/main",
+    "head_commit": {
+      "id": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "repository": {
+      "name": "rhoai-mlops-demo",
+      "clone_url": "https://github.com/acidonper/rhoai-mlops-demo.git"
+    },
+    "pusher": {
+      "username": "acidonper"
+    }
+  }'
+```
+
 ## Author
 
 Asier Cidon @RedHat

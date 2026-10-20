@@ -9,7 +9,7 @@ spec:
          name: "cel" 
        params:
         - name: filter
-          value: (header.match('X-GitHub-Event', 'push') && body.ref.split('/')[2] == 'main')
+          value: (header.match('X-GitHub-Event', 'push') && body.ref.split('/')[2] == 'master')
         - name: overlays
           value:
           - expression: body.head_commit.id.truncate(10)
