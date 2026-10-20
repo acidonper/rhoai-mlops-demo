@@ -35,6 +35,15 @@ This phase centers on establishing an automated framework for model training, bu
 
 Please execute the following actions:
 
+- Clone the origin model image from quay
+
+```$bash
+oc import-image jukebox:latest \
+  --from=quay.io/rhoai-mlops/jukebox:latest \
+  --confirm \ 
+  -n project01
+```
+
 - Specify the target domain inside the `researcher-project/mlops/ops/values.yaml` file.
 - Commit and push these updates to your remote repository.
 
