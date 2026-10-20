@@ -46,4 +46,4 @@ spec:
         git add values.yaml
         git commit -m "🚀 AUTOMATED COMMIT - Deployment of $(params.APPLICATION_NAME) for version $(params.VERSION) 🚀" || rc=$?
         git remote set-url origin $(cat $HOME/.git-credentials)/$(params.PROJECT_NAME)/mlops-gitops.git
-        git push origin HEAD:main
+        git push origin HEAD:master

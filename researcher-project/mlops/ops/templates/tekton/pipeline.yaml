@@ -48,7 +48,7 @@ spec:
         - name: URL
           value: "$(params.GIT_URL)"
         - name: REVISION
-          value: "main"
+          value: "master"
         - name: SUBDIRECTORY
           value: "$(params.APPLICATION_NAME)/$(params.GIT_BRANCH)"
         - name: DELETE_EXISTING

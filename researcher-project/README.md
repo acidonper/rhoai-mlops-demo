@@ -59,9 +59,9 @@ curl -sk -X POST \
   -H "X-GitHub-Delivery: $(uuidgen)" \
   -H "User-Agent: GitHub-Hookshot/curl" \
   -d '{
-    "ref": "refs/heads/main",
+    "ref": "refs/heads/master",
     "head_commit": {
-      "id": "0123456789abcdef0123456789abcdef01234567"
+      "id": "47d6d1b608ce04927c5d732952ea1d668ec07371"
     },
     "repository": {
       "name": "rhoai-mlops-demo",
@@ -72,6 +72,8 @@ curl -sk -X POST \
     }
   }'
 ```
+
+NOTE: Update `head_commit`, `clone_url`and `TektonListenerURL`
 
 ## Author
 
