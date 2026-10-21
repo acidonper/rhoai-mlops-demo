@@ -82,6 +82,12 @@ curl -sk -X POST \
   }'
 ```
 
+- Upon successful execution of the Tekton pipeline, proceed with deploying the application to leverage the newly generated model. Ensure you retrieve the target commit tag ID via RHOAI Dashboard -> Models -> Registry -> jukebox -> Select latest version (e.g., `6462d76b18`).
+
+- Next, promote this model artifact to production by updating the `researcher-project/mlops/ml/values.yaml` file, specifying the target `version` and verifying the corresponding `model_endpoint` configuration.
+
+- To conclude, commit and push your updates to Git to trigger automated deployment through ArgoCD.
+
 NOTE: Update `head_commit`, `clone_url`and `TektonListenerURL`
 
 ## Author

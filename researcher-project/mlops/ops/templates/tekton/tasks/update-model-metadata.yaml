@@ -60,7 +60,7 @@ spec:
                   print(f"Removed label from {version.name}")
                   
           elif version.name == "$(params.VERSION)":
-              props["deployable-latest"] = "true"  # Set non-empty flag value
+              props["deployable-latest"] = ""
               props["labels"] = "deployable-latest, production"
               version.custom_properties = props
               version.author = "$(params.GIT_COMMIT_AUTHOR)"
