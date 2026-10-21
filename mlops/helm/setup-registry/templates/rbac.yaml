@@ -16,8 +16,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: model-registry-client-binding
-  namespace: rhoai-model-registries-dspa
+  name: model-registry-client-binding-dspa
+  namespace: rhoai-model-registries
 subjects:
   - kind: ServiceAccount
     name: pipeline-runner-dspa
