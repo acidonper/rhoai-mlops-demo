@@ -81,16 +81,15 @@ spec:
           sleep_duration=5,
       )
 
-      # 3. Check the final status of the pipeline run
-      run_detail = client.get_run(run_id)
-      run_state = run_detail.state
+      # Pass the string run_id to get_run
+      run_detail = client.get_run(run_id=run_id)
 
-      print(f"Pipeline run finished with state: {run_state}")
+      print(f"Pipeline run finished with state: {run_detail.state}")
 
-      # KFP v2 states: 'SUCCEEDED', 'FAILED', 'CANCELLED', 'SKIPPED'
-      if run_state != "SUCCEEDED":
-          print(f"❌ KFP run {run_id} failed with state: {run_state}")
-          sys.exit(1)  # Fails the Tekton task
+      # 5. Check run state in KFP v2
+      if run_detail.state != "SUCCEEDED":
+          print(f"❌ KFP run {run_id} failed with state: {run_detail.state}")
+          sys.exit(1)
 
       print("✅ KFP run completed successfully!")
       
