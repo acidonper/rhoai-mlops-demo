@@ -145,8 +145,16 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
     #     mount_path='/models',
     # )
     # Disable SSL verification for Python AWS/boto3 SDKs inside the component
-    register_model_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
-    register_model_task.set_env_variable("AWS_CA_BUNDLE", "")
+    # register_model_task.set_env_variable("PYTHONHTTPSVERIFY", "0")
+    # register_model_task.set_env_variable("AWS_CA_BUNDLE", "")
+    register_model_task.set_env_variable(
+            "AWS_CA_BUNDLE", 
+            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+        )
+    register_model_task.set_env_variable(
+            "REQUESTS_CA_BUNDLE", 
+            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+        )
     
 
 if __name__ == '__main__':
