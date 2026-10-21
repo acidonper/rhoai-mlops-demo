@@ -1,5 +1,11 @@
 ---
 name: jukebox
-version: latest
+# version: latest
+version: 6462d76b18
 image_repository: image-registry.openshift-image-registry.svc:5000
 image_namespace: project01
+model_endpoint: https://jukebox-project01.apps.ocp.b5frx.sandbox1967.opentlc.com
+input_node: input
+model_name: jukebox
+search_as_default: false
+image: quay.io/rhoai-mlops/jukebox-ui:simple-1.2
