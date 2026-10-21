@@ -18,6 +18,7 @@ metadata:
   labels:
     networking.kserve.io/visibility: exposed
     opendatahub.io/dashboard: 'true'
+    modelregistry.opendatahub.io/model-version-id: '{{ .Values.model_version_id }}'
 spec:
   predictor:
     automountServiceAccountToken: false
@@ -38,4 +39,4 @@ spec:
           cpu: '2'
           memory: 4Gi
       runtime: {{ .Values.name }}
-      storageUri: oci://{{ .Values.image_repository | default "quay.io" }}/{{ .Values.image_namespace }}/{{ .Values.name }}:{{ .Values.version }}
+      storageUri: oci://{{ .Values.image_repository | default "quay.io" }}/{{ .Values.image_namespace }}/{{ .Values.name }}:{{ .Values.model_version }}
