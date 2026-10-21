@@ -61,7 +61,7 @@ spec:
                   
           elif version.name == "$(params.VERSION)":
               props["deployable-latest"] = "true"  # Set non-empty flag value
-              props["tags"] = "deployable-latest, production"
+              props["labels"] = "deployable-latest, production"
               version.custom_properties = props
               version.author = "$(params.GIT_COMMIT_AUTHOR)"
               registry.update(version)
