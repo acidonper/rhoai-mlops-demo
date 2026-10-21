@@ -53,14 +53,15 @@ spec:
           props = version.custom_properties.copy()  # Copy to avoid modifying original
           if version.name != "$(params.VERSION)":
               # Safe pop: removes key if present, ignores if missing
-              if "deployable_latest" in props:
-                  props.pop("deployable_latest", None)
+              if "deployable-latest" in props:
+                  props.pop("deployable-latest", None)
                   version.custom_properties = props
                   registry.update(version)
                   print(f"Removed label from {version.name}")
                   
           elif version.name == "$(params.VERSION)":
-              props["deployable_latest"] = "true"  # Set non-empty flag value
+              props["deployable-latest"] = "true"  # Set non-empty flag value
+              props["tags"] = "deployable-latest, production"
               version.custom_properties = props
               version.author = "$(params.GIT_COMMIT_AUTHOR)"
               registry.update(version)
