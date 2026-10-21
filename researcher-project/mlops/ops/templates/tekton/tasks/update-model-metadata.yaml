@@ -50,6 +50,7 @@ spec:
 
         # Add label
         for version in registry.get_model_versions("$(params.APPLICATION_NAME)"):
+          props = version.custom_properties.copy()  # Copy to avoid modifying original
           if version.name != "$(params.VERSION)":
               # Safe pop: removes key if present, ignores if missing
               if "deployable_latest" in props:
