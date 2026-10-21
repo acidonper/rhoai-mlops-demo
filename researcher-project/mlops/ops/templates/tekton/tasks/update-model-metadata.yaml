@@ -51,14 +51,19 @@ spec:
         # Add label
         for version in registry.get_model_versions("$(params.APPLICATION_NAME)"):
           if version.name != "$(params.VERSION)":
-              version.custom_properties.pop("deployable_latest")
-              registry.update(version)
-              print("Removed label from $(params.VERSION)")
+              # Safe pop: removes key if present, ignores if missing
+              if "deployable_latest" in props:
+                  props.pop("deployable_latest", None)
+                  version.custom_properties = props
+                  registry.update(version)
+                  print(f"Removed label from {version.name}")
+                  
           elif version.name == "$(params.VERSION)":
-              version.custom_properties["deployable_latest"]=""
+              props["deployable_latest"] = "true"  # Set non-empty flag value
+              version.custom_properties = props
               version.author = "$(params.GIT_COMMIT_AUTHOR)"
               registry.update(version)
-              print("Added label to $(params.VERSION)")
+              print(f"Added label to {version.name}")
 
         # Update Model URI
         model = registry.get_model_artifact("$(params.APPLICATION_NAME)","$(params.VERSION)")
