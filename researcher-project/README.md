@@ -28,10 +28,9 @@ Please execute the following actions:
 - Clone the origin model image from quay
 
 ```$bash
-oc import-image jukebox:latest \
+oc import-image jukebox:latest -n project01\
   --from=quay.io/rhoai-mlops/jukebox:latest \
-  --confirm \ 
-  -n project01
+  --confirm 
 ```
 
 - Specify the target domain inside the `researcher-project/mlops/ops/values.yaml` file.
