@@ -29,6 +29,9 @@ spec:
     - default: "false"
       name: GIT_SSL_VERIFY
       type: string
+    - name: KUEUE_LOCAL_QUEUE
+      type: string
+      default: ""
   tasks:
     # Clone jukebox repository
     - name: fetch-ds-pipeline-repository
@@ -71,6 +74,8 @@ spec:
           value: "$(params.APPLICATION_NAME)"
         - name: GIT_SHORT_REVISION
           value: "$(params.GIT_SHORT_REVISION)"
+        - name: KUEUE_LOCAL_QUEUE
+          value: "{{ .Values.namespace }}-lq"
       runAfter:
         - fetch-ds-pipeline-repository
 

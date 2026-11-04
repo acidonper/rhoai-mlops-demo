@@ -56,7 +56,8 @@ spec:
 
       with open('default_parameters.json') as f:
           default_parameters = json.load(f)
-      
+
+      default_parameters['kueue_queue_name'] = "$(params.KUEUE_LOCAL_QUEUE)"
       default_parameters['version'] = "$(params.GIT_SHORT_REVISION)"
       default_parameters['model_name'] = "$(params.APPLICATION_NAME)"
       default_parameters['model_storage_pvc'] = "$(params.APPLICATION_NAME)-model-pvc"

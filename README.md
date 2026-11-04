@@ -66,6 +66,7 @@ IMPORTANT: The notebooks and the training pipeline expect `aws-connection-models
 - OpenShift Data Foundation, with the storage class set in `values.yaml` (`openshift-storage.noobaa.io` by default)
 - OpenShift Pipelines
 - OpenShift GitOps
+- Red Hat build of Kueue operator
 
 ## Layout
 

@@ -31,7 +31,7 @@ data_connection_secret_name_models = 'aws-connection-models'
   name='kfp-training-pipeline',
   description='We train an amazing model 🚂'
 )
-def training_pipeline(hyperparameters: dict, model_name: str, version: str, cluster_domain: str, model_storage_pvc: str, prod_flag: bool):
+def training_pipeline(hyperparameters: dict, model_name: str, version: str, cluster_domain: str, model_storage_pvc: str, prod_flag: bool, kueue_queue_name: str):
     ### 🐶 Fetch Data from GitHub
     fetch_task = fetch_data()
     kubernetes.use_secret_as_env(
@@ -92,6 +92,18 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
             "REQUESTS_CA_BUNDLE", 
             "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
         )
+
+    if isinstance(kueue_queue_name, str) and kueue_queue_name.strip():
+        print(f"Assigning task to Kueue LocalQueue: {kueue_queue_name.strip()}")
+        training_task.set_gpu_limit("1")
+        kubernetes.add_pod_label(
+            training_task,
+            label_key="kueue.x-k8s.io/queue-name",
+            label_value=kueue_queue_name.strip(),
+        )
+    else:
+        print("No Kueue queue specified. Running with standard cluster scheduling.")
+
 
     # Convert Keras model to ONNX
     convert_task = convert_keras_to_onnx(keras_model = training_task.outputs["trained_model"])
@@ -180,7 +192,6 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
             "REQUESTS_CA_BUNDLE", 
             "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
         )
-    
 
 if __name__ == '__main__':
     metadata = {
@@ -191,7 +202,8 @@ if __name__ == '__main__':
         "version": "0.0.2",
         "cluster_domain": "<CLUSTER_DOMAIN>", # 👈 add your cluster domain here
         "model_storage_pvc": "jukebox-model-pvc",
-        "prod_flag": False
+        "prod_flag": False,
+        "kueue_queue_name": ""
     }
         
     namespace_file_path =\
