@@ -36,7 +36,23 @@ A successful MLOps platform requires collaboration across multiple disciplines. 
 
 ## 🛠️ Operational Phases & Demo Architecture
 
-This repository is structured around several critical operational phases, each demonstrating a key capability of Red Hat OpenShift AI:
+This repository is structured around several critical operational phases:
+
+### 1. Infrastructure Setting Up
+
+Create Namespaces, install ArgoCD operators and instances, enable Model Registries basement and setup MLOps  main components.
+
+### 2. Implement AI/ML Operation
+
+Setting up data science projects including registry, pipelines server, s3 buckets, storage connections and integrate tekton/ML pipelines.
+
+### 3. Data Scientist Evolution
+
+Emulate data scientist day to day and the respective evolution to a MLOps strategy for production
+
+## 🛡️ Operational Challenges 
+
+Operation phases demonstrate a key capability of Red Hat OpenShift AI:
 
 ### 1. Data Science Pipelines
 Automate and orchestrate complex ML workflows. We transition from manual notebook execution to repeatable, version-controlled pipelines that handle data processing, training, and evaluation.
