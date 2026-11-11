@@ -1,71 +1,93 @@
-# AI/ML lifecycle with Red Hat OpenShift AI
+# 🚀 Red Hat OpenShift AI: End-to-End AI/ML Lifecycle Demo
 
-This repository is a lab for an MLOps flow on Red Hat OpenShift AI. GitOps installs a data science project, a project-local Argo CD, a MySQL-backed model registry, S3 buckets, OpenShift AI data connections, and a pipeline server. From a workbench in that project you train the jukebox model, register it, and call it.
+[![Red Hat OpenShift AI](https://img.shields.io/badge/Red_Hat-OpenShift_AI-EE0000?logo=redhat&logoColor=white)](#)
+[![KServe](https://img.shields.io/badge/Serving-KServe-blue?logo=kubernetes)](#)
+[![Jupyter](https://img.shields.io/badge/Jupyter-F37626.svg?style=for-the-badge&logo=Jupyter&logoColor=white)](#)
+[![Kubeflow](https://img.shields.io/badge/Kubeflow-0088CC.svg?style=for-the-badge&logo=Kubeflow&logoColor=white)](#)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D.svg?style=for-the-badge&logo=Argo&logoColor=white)](#)
+[![Status](https://img.shields.io/badge/Status-Active_Demo-success)](#)
 
-## Install
+Welcome to the **End-to-End MLOps Demo Repository**. This project showcases how to overcome common data science workflow challenges by bridging the gap between isolated notebook experimentation and robust, scalable production handoffs.
 
-Log in with `oc` as a cluster admin. The cluster needs Red Hat OpenShift AI, OpenShift Data Foundation, and OpenShift Pipelines. `setup.sh` installs OpenShift GitOps and uses the default Argo CD instance in `openshift-gitops`.
+## 📖 Overview
+
+Transitioning machine learning models from a data scientist's local notebook into a reliable production environment is notoriously difficult. This demo provides a comprehensive, hands-on walkthrough of a modern MLOps architecture using **Red Hat OpenShift AI**. 
+
+Here, we explore the complete lifecycle—from initial infrastructure setup and pipeline orchestration to model serving and real-time observability.
+
+## 🌟 Why MLOps?
+
+By implementing the practices demonstrated in this repository, organizations can:
+
+- ⚡ **Accelerate Delivery:** Streamline the path from model creation to deployment.
+- 🛡️ **Maintain Governance & Trust:** Ensure models are fair, explainable, and compliant.
+- 🏗️ **Achieve Reliability at Scale:** Standardize deployments to handle production-level traffic and data drift securely.
+
+## 👥 Core Personas & Roles
+
+A successful MLOps platform requires collaboration across multiple disciplines. This demo highlights the specific platform roles of three core personas:
+
+| Persona | Role in the Platform |
+| :--- | :--- |
+| **Data Scientists** | Focus on data exploration, model training, and experimentation in Jupyter/VSCode notebooks without worrying about underlying infrastructure. |
+| **MLOps Engineers** | Automate workflows, manage model registries, orchestrate training pipelines, and ensure smooth CI/CD integration. |
+| **Infrastructure Engineers** | Provision clusters, manage GPU/CPU resources, ensure platform security, and maintain the underlying Red Hat OpenShift ecosystem. |
+
+
+## 🛠️ Operational Phases & Demo Architecture
+
+This repository is structured around several critical operational phases, each demonstrating a key capability of Red Hat OpenShift AI:
+
+### 1. Data Science Pipelines
+Automate and orchestrate complex ML workflows. We transition from manual notebook execution to repeatable, version-controlled pipelines that handle data processing, training, and evaluation.
+
+### 2. Model Registries
+Centralize model artifact management. Track model versions, metadata, and lineage to ensure a clean handoff between the data science and MLOps teams.
+
+### 3. Model Serving (KServe)
+Deploy models to production with high availability. We utilize **KServe** for highly scalable, serverless model inferencing, complete with advanced routing and auto-scaling capabilities.
+
+### 4. Observability & Monitoring 
+Maintain model integrity post-deployment. We incorporate the capacity to integrate data drift monitoring, track model fairness, provide explainability metrics, and ensure ongoing governance.
+
+## 🚀 Getting Started
+
+*(Add instructions here for users cloning the repository)*
+
+### Prerequisites
+
+* Red Hat OpenShift
+* Red Hat OpenShift AI, with the model registry component so the `rhoai-model-registries` namespace exists
+* OpenShift Data Foundation, with the storage class set in `values.yaml` (`openshift-storage.noobaa.io` by default)
+* OpenShift Pipelines
+* OpenShift GitOps
+* Red Hat build of Kueue operator
+
+### Installation
+
+1. Log in with `oc` as a cluster admin and execute the following commands:
 
 ```bash
 cd mlops/ocp
 ./setup.sh
 ```
 
-The script creates the `openshift-gitops-operator` and `project01` namespaces, subscribes to the GitOps operator, and applies two Applications. Names to change for another cluster are listed in [mlops/ocp/README.md](mlops/ocp/README.md).
+2. Set up a fresh workbench within the OpenShift AI dashboard under the `project01` namespace, ensuring it integrates the `aws-connection-models` data connection (you can log in via your Openshift AI environment route, e.g., https://rh-ai.apps.ocp.b5frx.sandbox1967.opentlc.com/projects/project01).
 
-### ArgoCD Instances
-
-Following completion of the setup phase, you can log into these ArgoCD deployments for verification:
-
-- Target namespace `openshift-gitops` featuring the `openshift-gitops` instance (e.g. https://openshift-gitops-server-openshift-gitops.apps.ocp.b5frx.sandbox1967.opentlc.com/).
-- Target namespace `project01` featuring the `argocd` instance (e.g. https://argocd-server-project01.apps.ocp.b5frx.sandbox1967.opentlc.com/)
-
-IMPORTANT: Authenticate using the administrative credentials from the `ArgoCDInstance`-cluster secret.
-
-### What the sync creates
-
-`ocp-setup-project` renders [mlops/helm/setup-project](mlops/helm/setup-project). That chart installs an Argo CD instance in `project01` and the Application `data-science-onboarding`.
-
-`data-science-onboarding` syncs two paths into `project01`:
-
-- [mlops/tekton/s3](mlops/tekton/s3): the `create-kubernetes-object` pipeline, its tasks, and the service accounts that run them.
-- [mlops/helm/data-science-onboarding](mlops/helm/data-science-onboarding): one `ObjectBucketClaim` per bucket, one PostSync Job per bucket, and the `dspa` pipeline server.
-
-Each Job starts a PipelineRun. The run waits until OpenShift Data Foundation publishes the claim Secret and ConfigMap, writes the OpenShift AI connection Secret, and annotates every Notebook listed in `workbenchName` with that connection.
-
-`ocp-setup-registry` renders [mlops/helm/setup-registry](mlops/helm/setup-registry) into `rhoai-model-registries`: MySQL and a `ModelRegistry` named `project01-registry`.
-
-### Lab names
-
-| Item | Value |
-| --- | --- |
-| Data science project | `project01` |
-| Git revision | `master` on `https://github.com/acidonper/rhoai-mlops-demo.git` |
-| Model registry namespace | `rhoai-model-registries` |
-| Model registry | `project01-registry` |
-| Workbenches | `test-workbench`, `test-workbench-1` |
-| Buckets | `project01-models`, `project01-pipelines` |
-| Connections | `aws-connection-models`, `aws-connection-pipelines` |
-
-### Add a bucket
-
-Add an entry under `buckets` in [`mlops/helm/data-science-onboarding/values.yaml`](mlops/helm/data-science-onboarding/values.yaml). The next sync creates the claim `<namespace>-<name>` and the Job `start-connection-<name>`. Field rules are in the [chart README](mlops/helm/data-science-onboarding/README.md).
-
-## Train and call the model
-
-After ArgoCD instances provision all necessary prerequisites, you can begin the model training phase. As an initial step, set up a fresh workbench within the OpenShift AI dashboard under the `project01` namespace, ensuring it integrates the `aws-connection-models` data connection (you can log in via your Openshift AI environment route, e.g., https://rh-ai.apps.ocp.b5frx.sandbox1967.opentlc.com/projects/project01).
+3. Follow [researcher-project/README.md](researcher-project/README.md)
 
 Apply the workbench yourself, then follow [researcher-project/README.md](researcher-project/README.md). 
 
-IMPORTANT: The notebooks and the training pipeline expect `aws-connection-models`, `aws-connection-pipelines`, and `project01-registry` to exist.
+### Verification
 
-## Requirements
+The script creates the `openshift-gitops-operator` and `project01` namespaces, subscribes to the GitOps operator, and applies two Applications.
 
-- Red Hat OpenShift
-- Red Hat OpenShift AI, with the model registry component so the `rhoai-model-registries` namespace exists
-- OpenShift Data Foundation, with the storage class set in `values.yaml` (`openshift-storage.noobaa.io` by default)
-- OpenShift Pipelines
-- OpenShift GitOps
+Following completion of the setup phase, you can log into these ArgoCD deployments for verification:
+
+* Target namespace `openshift-gitops` featuring the `openshift-gitops` instance (e.g. https://openshift-gitops-server-openshift-gitops.apps.ocp.b5frx.sandbox1967.opentlc.com/).
+* Target namespace `project01` featuring the `argocd` instance (e.g. https://argocd-server-project01.apps.ocp.b5frx.sandbox1967.opentlc.com/)
+
+IMPORTANT: Authenticate using the administrative credentials from the `ArgoCDInstance`-cluster secret.
 
 ## Layout
 
@@ -79,6 +101,10 @@ IMPORTANT: The notebooks and the training pipeline expect `aws-connection-models
 | `mlops/tekton/s3/run-examples` | PipelineRuns to create by hand |
 | [`researcher-project`](researcher-project/README.md) | Notebooks, training pipeline, and sample workbench manifests |
 
-## Author
+## 🤝 Contributing
+
+We welcome contributions! If you have ideas for improving the pipelines or adding new TrustyAI metrics, please open an issue or submit a pull request.
+
+## 🥷🏻 Author
 
 Asier Cidon @RedHat
