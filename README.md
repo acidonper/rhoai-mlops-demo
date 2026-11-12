@@ -116,6 +116,7 @@ IMPORTANT: Authenticate using the administrative credentials from the `ArgoCDIns
 | [`mlops/tekton/s3`](mlops/tekton/s3/README.md) | Pipeline, tasks, and service accounts |
 | `mlops/tekton/s3/run-examples` | PipelineRuns to create by hand |
 | [`researcher-project`](researcher-project/README.md) | Notebooks, training pipeline, and sample workbench manifests |
+| `skills` | Agent skills for the researcher-project KFP pipeline and the Tekton Helm chart |
 
 ## 🤝 Contributing
 
