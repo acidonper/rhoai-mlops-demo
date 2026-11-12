@@ -1,8 +1,8 @@
 ---
 name: jukebox
-model_version: latest
-# model_version: bebcccd0c1
-model_version_id: 6
+model_version: 53ce718302
+# model_version: latest
+model_version_id: 7
 image_repository: image-registry.openshift-image-registry.svc:5000
 image_namespace: project01
 model_endpoint: https://jukebox-project01.apps.ocp.x6kl6.sandbox1207.opentlc.com
