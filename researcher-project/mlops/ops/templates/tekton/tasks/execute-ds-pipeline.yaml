@@ -16,6 +16,9 @@ spec:
     - name: GIT_SHORT_REVISION
       description: Short Git commit hast
       type: string
+    - name: KUEUE_LOCAL_QUEUE
+      description: Name of the local Kueue queue
+      type: string
   results:
     - name: KFP_RUN_ID
       description: Run ID of the Data Science Pipeline
