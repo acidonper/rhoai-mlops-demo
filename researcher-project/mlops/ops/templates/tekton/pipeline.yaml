@@ -31,7 +31,11 @@ spec:
       type: string
     - name: KUEUE_LOCAL_QUEUE
       type: string
+{{- if .Values.kueue.enabled }}
+      default: "{{ .Values.namespace }}-lq"
+{{- else }}
       default: ""
+{{- end }}
   tasks:
     # Clone jukebox repository
     - name: fetch-ds-pipeline-repository
@@ -75,7 +79,7 @@ spec:
         - name: GIT_SHORT_REVISION
           value: "$(params.GIT_SHORT_REVISION)"
         - name: KUEUE_LOCAL_QUEUE
-          value: "{{ .Values.namespace }}-lq"
+          value: "$(params.KUEUE_LOCAL_QUEUE)"
       runAfter:
         - fetch-ds-pipeline-repository
 
