@@ -1,3 +1,5 @@
 ---
 namespace:  project01
 cluster_domain: apps.ocp.hzl6c.sandbox1202.opentlc.com
+kueue:
+  enabled: true
