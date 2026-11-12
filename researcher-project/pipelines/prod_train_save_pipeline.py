@@ -26,6 +26,21 @@ from save_model import push_to_model_registry
 data_connection_secret_name_pipelines = 'aws-connection-pipelines'
 data_connection_secret_name_models = 'aws-connection-models'
 
+_SERVICE_CA_BUNDLE = '/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt'
+
+def configure_pipeline_task(task):
+    """Env shared by the KFP launcher and the component process.
+
+    The launcher downloads artifacts with aws-sdk-go-v2 before user code runs.
+    NooBaa (s3.openshift-storage.svc) drops HTTP/2 connections and rejects the
+    SDK's default checksum mode. Both show up as GetObject EOF after retries.
+    """
+    task.set_env_variable('AWS_CA_BUNDLE', _SERVICE_CA_BUNDLE)
+    task.set_env_variable('REQUESTS_CA_BUNDLE', _SERVICE_CA_BUNDLE)
+    task.set_env_variable('GODEBUG', 'http2client=0')
+    task.set_env_variable('AWS_REQUEST_CHECKSUM_CALCULATION', 'when_required')
+    task.set_env_variable('AWS_RESPONSE_CHECKSUM_VALIDATION', 'when_required')
+
 # Create pipeline
 @dsl.pipeline(
   name='kfp-training-pipeline',
@@ -45,37 +60,16 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
             'AWS_DEFAULT_REGION': 'AWS_DEFAULT_REGION_MODEL',
         },
     )
-    fetch_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    fetch_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(fetch_task)
 
     # Validate Data
     data_validation_task = validate_data(dataset = fetch_task.outputs["dataset"])
-    data_validation_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    data_validation_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(data_validation_task)
 
     # Pre-process Data
     pre_processing_task = preprocess_data(in_data = fetch_task.outputs["dataset"])
     pre_processing_task.after(data_validation_task)
-    pre_processing_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    pre_processing_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(pre_processing_task)
 
     # Train Keras model
     training_task = train_model(
@@ -84,14 +78,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         scaler = pre_processing_task.outputs["scaler"],
         hyperparameters = hyperparameters,
     )
-    training_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    training_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(training_task)
 
     if isinstance(kueue_queue_name, str) and kueue_queue_name.strip():
         print(f"Assigning task to Kueue LocalQueue: {kueue_queue_name.strip()}")
@@ -107,14 +94,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
 
     # Convert Keras model to ONNX
     convert_task = convert_keras_to_onnx(keras_model = training_task.outputs["trained_model"])
-    convert_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    convert_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(convert_task)
 
     # Evaluate Keras model performance
     model_evaluation_task = evaluate_keras_model_performance(
@@ -132,14 +112,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         env_name='NAMESPACE',
         field_path='metadata.namespace'
     )
-    model_evaluation_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    model_evaluation_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(model_evaluation_task)
 
 
     # Validate that the Keras -> ONNX conversion was successful
@@ -149,14 +122,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         test_data = pre_processing_task.outputs["test_data"],
         scaler = pre_processing_task.outputs["scaler"],
     )
-    model_validation_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    model_validation_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(model_validation_task)
 
     # Register model to the Model Registry
     register_model_task = push_to_model_registry(
@@ -184,14 +150,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         },
     )
     register_model_task.after(model_validation_task)
-    register_model_task.set_env_variable(
-            "AWS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
-    register_model_task.set_env_variable(
-            "REQUESTS_CA_BUNDLE", 
-            "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
-        )
+    configure_pipeline_task(register_model_task)
 
 if __name__ == '__main__':
     metadata = {

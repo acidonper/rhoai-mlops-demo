@@ -108,7 +108,7 @@ def training_pipeline(
 - Pass an upstream file as `task.outputs["<parameter name>"]`. The key is the component parameter name.
 - An artifact input already waits for the producer. Call `.after(task)` when this step must wait for a task whose output it does not take (validation before preprocess, ONNX check before register).
 - Pass `version` into any cached step that must rerun for a new model version.
-- On every task set both `AWS_CA_BUNDLE` and `REQUESTS_CA_BUNDLE` to `/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt`.
+- On every task call `configure_pipeline_task`. It sets `AWS_CA_BUNDLE` and `REQUESTS_CA_BUNDLE` to `/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt`. It also sets `GODEBUG=http2client=0`, `AWS_REQUEST_CHECKSUM_CALCULATION=when_required`, and `AWS_RESPONSE_CHECKSUM_VALIDATION=when_required`. The launcher’s aws-sdk-go-v2 client otherwise fails `GetObject` against NooBaa with `EOF`.
 - Map `aws-connection-models` only onto the fetch task, with the `_MODEL` env names. Map `aws-connection-pipelines` only onto the register task, with the unsuffixed env names.
 - On a task that reads `NAMESPACE` from the environment, add `kubernetes.use_field_path_as_env(task, env_name="NAMESPACE", field_path="metadata.namespace")`. The register step reads `/var/run/secrets/kubernetes.io/serviceaccount/namespace` instead, so it does not need that field path.
 - `prod_flag` selects storage. `False` uploads the ONNX model, scaler, and label encoder through the pipelines connection and registers that S3 URI. `True` copies the ONNX model, Keras model, scaler, label encoder, and frozen requirements onto the PVC and registers the URI `to-be-updated`.
@@ -161,7 +161,7 @@ Run from the pipeline directory with `PYTHONPATH` set to that directory. Initial
 - [ ] Runtime imports sit inside the component function, and third-party packages are pinned.
 - [ ] Each output path gets its suffix before the file is written.
 - [ ] Secret env names match the connection: `_MODEL` for models, unsuffixed for pipelines.
-- [ ] Every task sets both CA bundle variables.
+- [ ] Every task calls `configure_pipeline_task` (CA bundles, HTTP/1.1, checksum mode).
 - [ ] A step with no artifact edge uses `.after`.
 - [ ] `version` reaches steps that must bypass the cache.
 - [ ] Registry namespace is the first namespace segment, plus `-prod` when `prod_flag` is true.
