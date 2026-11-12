@@ -8,6 +8,7 @@ Chart `ocp-setup-project`. Application `ocp-setup-project` in `openshift-gitops`
 | --- | --- |
 | `templates/argocd.yaml` | `ArgoCD` named `argocd` in the project namespace. The route is enabled, Dex uses OpenShift OAuth, and cluster admins map to the Argo CD `admin` role. `TaskRun` and `PipelineRun` objects are excluded from the resource tracking. |
 | `templates/application.yaml` | Application `data-science-onboarding` in the project namespace. It syncs `mlops/tekton/s3` and this repo's `mlops/helm/data-science-onboarding` chart into the same namespace. |
+| `templates/kueue-rbac.yaml` | RoleBinding `argocd-kueue-localqueue-editor`. It grants `argocd-argocd-application-controller` the Kueue `kueue-localqueue-editor-role` in the project namespace, so that controller can create the onboarding `LocalQueue`. Sync wave `-1` creates the binding before Application `data-science-onboarding`. |
 | `templates/namespace.yaml` | Commented out. [`../../ocp/setup.sh`](../../ocp/setup.sh) creates `project01`, and `ocp-setup-project` also sets `CreateNamespace=true`. |
 
 The project-local Argo CD reconciles `data-science-onboarding` because that Application is created in the project namespace.
