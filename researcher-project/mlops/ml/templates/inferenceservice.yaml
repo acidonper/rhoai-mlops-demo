@@ -38,5 +38,5 @@ spec:
         requests:
           cpu: '2'
           memory: 4Gi
-      runtime: {{ .Values.name }}
+      runtime: {{ .Values.name }}-production
       storageUri: oci://{{ .Values.image_repository | default "quay.io" }}/{{ .Values.image_namespace }}/{{ .Values.name }}:{{ .Values.model_version }}
