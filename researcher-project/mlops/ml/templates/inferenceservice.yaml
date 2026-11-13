@@ -10,7 +10,7 @@ metadata:
     opendatahub.io/hardware-profile-namespace: redhat-ods-applications
     opendatahub.io/hardware-profile-name: default-profile
     opendatahub.io/model-type: predictive
-  name: {{ .Values.name }}
+  name: {{ .Values.name }}-production
   finalizers:
     - inferenceservice.finalizers
     - odh.inferenceservice.finalizers
