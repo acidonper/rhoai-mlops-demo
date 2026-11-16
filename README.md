@@ -112,6 +112,7 @@ IMPORTANT: Authenticate using the administrative credentials from the `ArgoCDIns
 | [`mlops/ocp`](mlops/ocp/README.md) | GitOps operator subscription and the two bootstrap Applications |
 | [`mlops/helm/setup-project`](mlops/helm/setup-project/README.md) | Project Argo CD and the onboarding Application |
 | [`mlops/helm/setup-registry`](mlops/helm/setup-registry/README.md) | Model registry and its MySQL database |
+| [`mlops/helm/setup-mlflow`](mlops/helm/setup-mlflow/README.md) | MLflow instance and PostgreSQL in `redhat-ods-applications` |
 | [`mlops/helm/data-science-onboarding`](mlops/helm/data-science-onboarding/README.md) | Buckets, connection Jobs, and the pipeline server |
 | [`mlops/tekton/s3`](mlops/tekton/s3/README.md) | Pipeline, tasks, and service accounts |
 | `mlops/tekton/s3/run-examples` | PipelineRuns to create by hand |

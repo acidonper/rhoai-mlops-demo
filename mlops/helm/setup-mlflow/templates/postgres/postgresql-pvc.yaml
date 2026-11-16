@@ -1,0 +1,13 @@
+{{- include "setup-mlflow.validate" . }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.postgresql.name }}
+  namespace: {{ .Values.mlflow.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.storage }}

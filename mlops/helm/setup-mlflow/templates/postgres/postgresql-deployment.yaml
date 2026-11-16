@@ -1,0 +1,53 @@
+{{- include "setup-mlflow.validate" . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.postgresql.name }}
+  namespace: {{ .Values.mlflow.namespace }}
+  labels:
+    app: {{ .Values.postgresql.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.postgresql.name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.postgresql.name }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: postgresql
+          image: {{ .Values.postgresql.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.postgresql.name }}-parameters
+            - secretRef:
+                name: {{ .Values.postgresql.name }}
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.postgresql.name }}

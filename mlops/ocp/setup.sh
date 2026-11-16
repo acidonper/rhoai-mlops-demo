@@ -14,8 +14,12 @@ oc apply -f 01-application-project.yaml
 # Install ArgoCD Application
 oc apply -f 02-application-registry.yaml
 
+# Install ArgoCD Application
+oc apply -f 03-application-mlflow.yaml
+
 # Label the namespaces
 oc label namespace rhoai-model-registries argocd.argoproj.io/managed-by=openshift-gitops
+oc label namespace redhat-ods-applications argocd.argoproj.io/managed-by=openshift-gitops
 oc label namespace project01 argocd.argoproj.io/managed-by=openshift-gitops
 oc create clusterrolebinding openshift-gitops-argocd-application-controller-cluster-admin \
   --clusterrole=cluster-admin \

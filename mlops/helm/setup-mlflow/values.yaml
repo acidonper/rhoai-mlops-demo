@@ -1,0 +1,30 @@
+# The MLflow operator reconciles this object. This chart installs PostgreSQL
+# and writes the connection Secret named by backendStore.secretName.
+mlflow:
+  name: default-mlflow
+  namespace: redhat-ods-applications
+  replicas: 1
+  backendStore:
+    secretName: mlflow-postgres
+  artifactStore:
+    bucket: mlflow-artifacts
+    secretName: mlflow-s3-credentials
+
+# Single-replica PostgreSQL for the MLflow backend store. The lab password
+# is "test". Replace it before using the database outside this demo.
+postgresql:
+  name: mlflow-postgres
+  image: postgres:16
+  user: mlflow
+  password: test
+  database: mlflow
+  storage: 10Gi
+
+# Endpoint published by NooBaa for storageClassName. The ObjectBucketClaim
+# ConfigMap repeats these as BUCKET_HOST and BUCKET_PORT. Credentials stay in
+# the Secret of the same name as the claim.
+objectStorage:
+  host: s3.openshift-storage.svc
+  port: "443"
+  storageClassName: openshift-storage.noobaa.io
+  region: ""

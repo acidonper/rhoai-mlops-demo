@@ -1,0 +1,20 @@
+{{- include "setup-mlflow.validate" . }}
+---
+apiVersion: mlflow.opendatahub.io/v1alpha1
+kind: MLflow
+metadata:
+  name: {{ .Values.mlflow.name }}
+  namespace: {{ .Values.mlflow.namespace }}
+spec:
+  replicas: {{ .Values.mlflow.replicas | int }}
+  # Backend store configuration (PostgreSQL installed by this chart)
+  backendStore:
+    databaseConnection:
+      secretRef:
+        name: {{ .Values.mlflow.backendStore.secretName }}
+  # Artifact storage configuration (S3-compatible bucket)
+  artifactStore:
+    s3:
+      bucket: {{ .Values.mlflow.artifactStore.bucket }}
+      secretRef:
+        name: {{ .Values.mlflow.artifactStore.secretName }}

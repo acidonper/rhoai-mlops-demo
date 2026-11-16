@@ -1,0 +1,10 @@
+{{- include "setup-mlflow.validate" . }}
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: {{ .Values.mlflow.artifactStore.bucket }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  bucketName: {{ .Values.mlflow.artifactStore.bucket }}
+  storageClassName: {{ .Values.objectStorage.storageClassName }}
