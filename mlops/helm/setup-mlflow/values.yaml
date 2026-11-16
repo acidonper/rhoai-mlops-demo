@@ -5,7 +5,7 @@ mlflow:
   namespace: redhat-ods-applications
   replicas: 1
   backendStore:
-    secretName: mlflow-postgres
+    secretName: mlflow-postgres-credentials
   artifactStore:
     bucket: mlflow-artifacts
     secretName: mlflow-s3-credentials
