@@ -5,7 +5,7 @@ model_version: latest
 model_version_id: 5
 image_repository: image-registry.openshift-image-registry.svc:5000
 image_namespace: project01
-model_endpoint: https://jukebox-production-project01.apps.ocp.vkg6l.sandbox753.opentlc.com
+model_endpoint: https://jukebox-production-project01.apps.ocp.xzgx5.sandbox930.opentlc.com
 input_node: input
 model_name: jukebox
 search_as_default: false
