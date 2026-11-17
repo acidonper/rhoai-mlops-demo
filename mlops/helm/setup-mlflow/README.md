@@ -9,7 +9,7 @@ helm upgrade --install setup-mlflow ./setup-mlflow \
   --namespace redhat-ods-applications
 ```
 
-PostgreSQL and the `MLflow` object are created in `mlflow.namespace`. The `ObjectBucketClaim` is created in the Helm release namespace. Keep that release namespace equal to `mlflow.namespace`.
+PostgreSQL and the database Secret are created in `mlflow.namespace`. The `MLflow` custom resource is cluster-scoped, so it has no namespace; the operator installs the server into `redhat-ods-applications`. The `ObjectBucketClaim` is created in the Helm release namespace. Keep that release namespace equal to `mlflow.namespace`.
 
 ## Resources
 
@@ -20,20 +20,20 @@ PostgreSQL and the `MLflow` object are created in `mlflow.namespace`. The `Objec
 | `templates/postgresql-secret.yaml` | Secret `mlflow-postgres` with `POSTGRES_USER` and `POSTGRES_PASSWORD` |
 | `templates/postgresql-deployment.yaml` | Deployment `mlflow-postgres`, image `postgres:16`, `Recreate` strategy |
 | `templates/postgresql-service.yaml` | Service `mlflow-postgres` on port `5432` |
-| `templates/mlflow-db-secret.yaml` | Secret `mlflow-db-credentials` consumed by the `MLflow` backend store |
-| `templates/mlflow.yaml` | `MLflow` `default-mlflow` in `redhat-ods-applications` |
+| `templates/mlflow-db-secret.yaml` | Secret `mlflow-postgres-credentials` consumed by the `MLflow` backend store |
+| `templates/mlflow.yaml` | Cluster-scoped `MLflow` `mlflow` (`mlflow.opendatahub.io/v1`) |
 | `templates/objectbucketclaim.yaml` | `ObjectBucketClaim` `mlflow-artifacts` |
 
-`spec.replicas` is `1`. The backend store Secret is `mlflow-db-credentials` (`backendStore.databaseConnection.secretRef`). That Secret's `backend-store-uri` and `registry-store-uri` are `postgresql://mlflow:<password>@mlflow-postgres.redhat-ods-applications.svc.cluster.local:5432/mlflow`. It also stores `username`, `password`, `database`, `host`, and `port`.
+`spec.replicas` is `1`. `backendStoreUriFrom` and `registryStoreUriFrom` read `backend-store-uri` and `registry-store-uri` from the Secret `mlflow-postgres-credentials`. Those values are `postgresql://mlflow:<password>@mlflow-postgres.redhat-ods-applications.svc.cluster.local:5432/mlflow`. The Secret also stores `username`, `password`, `database`, `host`, and `port`.
 
-Artifact storage is the S3 bucket `mlflow-artifacts`. The claim uses `objectStorage.storageClassName`. The `MLflow` object still reads S3 credentials from the Secret `mlflow-s3-credentials`. This chart does not create that Secret. The claim creates a Secret of the same name as the claim.
+Artifact storage is the S3 bucket `mlflow-artifacts`. `defaultArtifactRoot` is `s3://mlflow-artifacts`. The claim uses `objectStorage.storageClassName` and creates the Secret `mlflow-artifacts`. The `MLflow` object reads `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from that Secret, and sets `MLFLOW_S3_ENDPOINT_URL` from `objectStorage.host` and `objectStorage.port`.
 
 ## Values
 
 | Key | Role |
 | --- | --- |
-| `mlflow.name` | Name of the `MLflow` object. DNS-1123 label. |
-| `mlflow.namespace` | Namespace of the `MLflow` object, PostgreSQL, and the database Secret. |
+| `mlflow.name` | Name of the `MLflow` object. The API accepts only `mlflow`. |
+| `mlflow.namespace` | Namespace of PostgreSQL and the database Secret. The `MLflow` object itself is cluster-scoped. |
 | `mlflow.replicas` | Tracking server replicas. Integer of at least 1. |
 | `mlflow.backendStore.secretName` | Secret that holds the PostgreSQL connection. |
 | `mlflow.artifactStore.bucket` | S3 bucket name and `ObjectBucketClaim` name. |

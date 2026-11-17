@@ -15,6 +15,9 @@
 {{- fail (printf "%q must be a DNS-1123 label" $label) -}}
 {{- end -}}
 {{- end -}}
+{{- if ne $name "mlflow" -}}
+{{- fail "mlflow.name must be \"mlflow\"" -}}
+{{- end -}}
 {{- if lt (.Values.mlflow.replicas | int) 1 -}}
 {{- fail "mlflow.replicas must be at least 1" -}}
 {{- end -}}

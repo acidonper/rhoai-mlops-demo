@@ -30,7 +30,7 @@ Both Applications live in `openshift-gitops`, track `master` of `https://github.
 | `01-application-project.yaml` | `ocp-setup-project` | `mlops/helm/setup-project` | `project01` (`CreateNamespace=true`) |
 | `02-application-registry.yaml` | `ocp-setup-registry` | `mlops/helm/setup-registry` | `rhoai-model-registries` |
 
-The Subscription sets `DISABLE_DEFAULT_ARGOCD_INSTANCE=false`, so the instance in `openshift-gitops` stays in place and reconciles these Applications. It sets `ARGOCD_CLUSTER_CONFIG_NAMESPACES` to `project01,rhoai-model-registries`.
+The Subscription sets `DISABLE_DEFAULT_ARGOCD_INSTANCE=false`, so the instance in `openshift-gitops` stays in place and reconciles these Applications. It sets `ARGOCD_CLUSTER_CONFIG_NAMESPACES` to `openshift-gitops,project01,rhoai-model-registries`. The `openshift-gitops` entry lets that default instance manage cluster-scoped resources, including the `MLflow` object.
 
 What each chart installs is described in [../helm/README.md](../helm/README.md).
 

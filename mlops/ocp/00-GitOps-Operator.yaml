@@ -23,6 +23,7 @@ spec:
       # Optional: Disable the default instance if you only want user-defined instances
       - name: DISABLE_DEFAULT_ARGOCD_INSTANCE
         value: "false"
-      # Grant cluster configuration access to your targeted Argo CD namespace
+      # Namespaces whose Argo CD instances may manage cluster-scoped resources.
+      # openshift-gitops hosts the default instance, which syncs the cluster-scoped MLflow object.
       - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
-        value: "project01,rhoai-model-registries"
+        value: "openshift-gitops,project01,rhoai-model-registries"

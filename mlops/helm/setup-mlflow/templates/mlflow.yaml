@@ -1,20 +1,28 @@
 {{- include "setup-mlflow.validate" . }}
 ---
-apiVersion: mlflow.opendatahub.io/v1alpha1
+apiVersion: mlflow.opendatahub.io/v1
 kind: MLflow
 metadata:
   name: {{ .Values.mlflow.name }}
-  namespace: {{ .Values.mlflow.namespace }}
 spec:
   replicas: {{ .Values.mlflow.replicas | int }}
-  # Backend store configuration (PostgreSQL installed by this chart)
-  backendStore:
-    databaseConnection:
-      secretRef:
-        name: {{ .Values.mlflow.backendStore.secretName }}
-  # Artifact storage configuration (S3-compatible bucket)
-  artifactStore:
-    s3:
-      bucket: {{ .Values.mlflow.artifactStore.bucket }}
-      secretRef:
-        name: {{ .Values.mlflow.artifactStore.secretName }}
+  backendStoreUriFrom:
+    name: {{ .Values.mlflow.backendStore.secretName }}
+    key: backend-store-uri
+  registryStoreUriFrom:
+    name: {{ .Values.mlflow.backendStore.secretName }}
+    key: registry-store-uri
+  defaultArtifactRoot: {{ printf "s3://%s" .Values.mlflow.artifactStore.bucket | quote }}
+  env:
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.mlflow.artifactStore.secretName }}
+          key: AWS_ACCESS_KEY_ID
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.mlflow.artifactStore.secretName }}
+          key: AWS_SECRET_ACCESS_KEY
+    - name: MLFLOW_S3_ENDPOINT_URL
+      value: {{ printf "https://%s:%s" .Values.objectStorage.host .Values.objectStorage.port | quote }}
