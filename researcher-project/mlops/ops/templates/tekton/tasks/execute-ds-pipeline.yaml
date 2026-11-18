@@ -27,6 +27,15 @@ spec:
     retries: 2
     workingDir: $(workspaces.output.path)/$(params.WORK_DIRECTORY)
     image: registry.redhat.io/ubi9/python-311@sha256:fc669a67a0ef9016c3376b2851050580b3519affd5ec645d629fd52d2a8b8e4a
+    env:
+      - name: MLFLOW_TRACKING_URI
+        value: https://mlflow.redhat-ods-applications.svc:8443/mlflow
+      - name: MLFLOW_TRACKING_AUTH
+        value: kubernetes-namespaced
+      - name: MLFLOW_K8S_INTEGRATION
+        value: "true"
+      - name: MLFLOW_TRACKING_INSECURE_TLS
+        value: "false"
     command: ["/bin/sh", "-c"]
     args:
     - |

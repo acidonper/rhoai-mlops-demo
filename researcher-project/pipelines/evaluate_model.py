@@ -10,7 +10,7 @@ from kfp.dsl import (
     ClassificationMetrics,
 )
 
-@component(base_image="tensorflow/tensorflow:2.21.0", packages_to_install=["numpy<2", "tf2onnx==1.17.0", "onnx==1.20.1", "pandas==2.2.3", "scikit-learn==1.6.1", "model-registry==0.3.7", "protobuf==7.34.0"])
+@component(base_image="tensorflow/tensorflow:2.21.0", packages_to_install=["numpy<2", "tf2onnx==1.17.0", "onnx==1.20.1", "pandas==2.2.3", "scikit-learn==1.6.1", "model-registry==0.3.7", "protobuf==7.34.0", "mlflow[kubernetes]==3.13.0"])
 def evaluate_keras_model_performance(
     model: Input[Artifact],
     test_data: Input[Dataset],
@@ -25,7 +25,7 @@ def evaluate_keras_model_performance(
 ):
     import keras
     import pandas as pd
-    from sklearn.metrics import confusion_matrix
+    from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
     import numpy as np
     from os import environ
     from model_registry import ModelRegistry
@@ -47,6 +47,12 @@ def evaluate_keras_model_performance(
     y_test_argmax = np.argmax(y_test, axis=1)
     
     accuracy = np.sum(y_pred_argmax == y_test_argmax) / len(y_pred_argmax)
+    weighted_precision, weighted_recall, weighted_f1, _ = precision_recall_fscore_support(
+        y_test_argmax,
+        y_pred_argmax,
+        average="weighted",
+        zero_division=0,
+    )
     
     # Get the previous models properties from the Model Registry
     if prod_flag:
@@ -76,8 +82,106 @@ def evaluate_keras_model_performance(
     print("Previous model metrics: ", previous_model_properties)
     print("Accuracy: ", accuracy)
 
+    # Log this run to MLflow beside the registry comparison. save_model resumes the
+    # run and copies these metrics onto the new logged model so versions can be compared.
+    import mlflow
+
+    tracking_uri = environ.get("MLFLOW_TRACKING_URI")
+    if not tracking_uri:
+        raise Exception("MLFLOW_TRACKING_URI is not set")
+    environ.setdefault("MLFLOW_TRACKING_AUTH", "kubernetes-namespaced")
+    environ.setdefault("MLFLOW_K8S_INTEGRATION", "true")
+    environ.setdefault("MLFLOW_TRACKING_INSECURE_TLS", "true")
+    injected_run_id = environ.pop("MLFLOW_RUN_ID", None)
+    environ.pop("MLFLOW_EXPERIMENT_ID", None)
+    mlflow.set_tracking_uri(tracking_uri)
+    experiment = mlflow.set_experiment(model_name)
+
+    def _tag(logged_model, key):
+        return str((logged_model.tags or {}).get(key, ""))
+
+    def _metric(logged_model, key):
+        for metric in logged_model.metrics or []:
+            if metric.key == key:
+                return float(metric.value)
+        return None
+
+    previous_logged_models = mlflow.search_logged_models(
+        experiment_ids=[experiment.experiment_id],
+        filter_string=f"name = '{model_name}'",
+        order_by=[{"field_name": "creation_time", "ascending": False}],
+        max_results=50,
+        output_format="list",
+    )
+    previous_logged_model = None
+    for candidate in previous_logged_models:
+        loaded = candidate
+        if _metric(candidate, "accuracy") is None:
+            loaded = mlflow.get_logged_model(candidate.model_id)
+        if _metric(loaded, "accuracy") is None:
+            continue
+        if previous_logged_model is None or _tag(loaded, "prod") == "true":
+            previous_logged_model = loaded
+        if _tag(loaded, "prod") == "true":
+            break
+
+    mlflow_prev_accuracy = None
+    if previous_logged_model is not None:
+        mlflow_prev_accuracy = _metric(previous_logged_model, "accuracy")
+        print(
+            "MLflow previous model:",
+            previous_logged_model.model_id,
+            "accuracy:",
+            mlflow_prev_accuracy,
+        )
+
+    run_metrics = {
+        "accuracy": float(accuracy),
+        "weighted_precision": float(weighted_precision),
+        "weighted_recall": float(weighted_recall),
+        "weighted_f1": float(weighted_f1),
+        "registry_prev_accuracy": float(previous_model_properties["accuracy"]),
+        "test_samples": float(len(y_pred_argmax)),
+    }
+    if mlflow_prev_accuracy is not None:
+        run_metrics["mlflow_prev_accuracy"] = float(mlflow_prev_accuracy)
+        run_metrics["accuracy_delta"] = float(accuracy) - float(mlflow_prev_accuracy)
+
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name=version) as run:
+        mlflow.log_params({
+            "model_name": model_name,
+            "version": version,
+            "prod_flag": str(prod_flag).lower(),
+        })
+        mlflow.set_tags({
+            "model_name": model_name,
+            "version": version,
+            "prod": str(prod_flag).lower(),
+        })
+        mlflow.log_metrics(run_metrics)
+        labels = [str(label) for label in label_encoder_.classes_.tolist()]
+        confusion_frame = pd.DataFrame(
+            confusion_matrix(y_test_argmax, y_pred_argmax),
+            index=labels,
+            columns=labels,
+        ).astype(int)
+        confusion_frame.index.name = "actual_label"
+        mlflow.log_table(confusion_frame.reset_index(), artifact_file="confusion_matrix.json")
+        mlflow_run_id = run.info.run_id
+
+    if injected_run_id:
+        mlflow.log_metrics(run_metrics, run_id=injected_run_id)
+
+    print("MLflow run:", mlflow_run_id)
+    metrics.metadata["mlflow_run_id"] = mlflow_run_id
+
     metrics.log_metric("Accuracy", float(accuracy))
     metrics.log_metric("Prev Model Accuracy", float(previous_model_properties["accuracy"]))
+    metrics.log_metric("Weighted Precision", float(weighted_precision))
+    metrics.log_metric("Weighted Recall", float(weighted_recall))
+    metrics.log_metric("Weighted F1", float(weighted_f1))
+    if mlflow_prev_accuracy is not None:
+        metrics.log_metric("MLflow Prev Accuracy", float(mlflow_prev_accuracy))
     
     cmatrix = confusion_matrix(y_test_argmax,y_pred_argmax)
     cmatrix = cmatrix.tolist()

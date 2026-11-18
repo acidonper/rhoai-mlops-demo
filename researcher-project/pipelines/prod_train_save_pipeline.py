@@ -28,6 +28,17 @@ data_connection_secret_name_models = 'aws-connection-models'
 
 _SERVICE_CA_BUNDLE = '/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt'
 
+# In-cluster address published by the MLflow operator on the shared server.
+# status.address.url is https://mlflow.<applications-namespace>.svc:8443/mlflow.
+_MLFLOW_TRACKING_URI = 'https://mlflow.redhat-ods-applications.svc:8443/mlflow'
+_MLFLOW_TRACKING_AUTH = 'kubernetes-namespaced'
+_MLFLOW_K8S_INTEGRATION = 'true'
+_MLFLOW_TRACKING_INSECURE_TLS = 'false'
+
+def _mlflow_setting(name, default):
+    value = os.environ.get(name, '').strip()
+    return value or default
+
 def configure_pipeline_task(task):
     """Env shared by the KFP launcher and the component process.
 
@@ -40,6 +51,18 @@ def configure_pipeline_task(task):
     task.set_env_variable('GODEBUG', 'http2client=0')
     task.set_env_variable('AWS_REQUEST_CHECKSUM_CALCULATION', 'when_required')
     task.set_env_variable('AWS_RESPONSE_CHECKSUM_VALIDATION', 'when_required')
+
+def configure_mlflow_task(task):
+    """Tracking settings for the steps that write runs and model versions.
+
+    The Tekton submit step exports the same names. create_run_from_pipeline_func
+    builds this graph in that process, so those values are copied onto the pods.
+    """
+    configure_pipeline_task(task)
+    task.set_env_variable('MLFLOW_TRACKING_URI', _mlflow_setting('MLFLOW_TRACKING_URI', _MLFLOW_TRACKING_URI))
+    task.set_env_variable('MLFLOW_TRACKING_AUTH', _mlflow_setting('MLFLOW_TRACKING_AUTH', _MLFLOW_TRACKING_AUTH))
+    task.set_env_variable('MLFLOW_K8S_INTEGRATION', _mlflow_setting('MLFLOW_K8S_INTEGRATION', _MLFLOW_K8S_INTEGRATION))
+    task.set_env_variable('MLFLOW_TRACKING_INSECURE_TLS', _mlflow_setting('MLFLOW_TRACKING_INSECURE_TLS', _MLFLOW_TRACKING_INSECURE_TLS))
 
 # Create pipeline
 @dsl.pipeline(
@@ -112,7 +135,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         env_name='NAMESPACE',
         field_path='metadata.namespace'
     )
-    configure_pipeline_task(model_evaluation_task)
+    configure_mlflow_task(model_evaluation_task)
 
 
     # Validate that the Keras -> ONNX conversion was successful
@@ -150,7 +173,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         },
     )
     register_model_task.after(model_validation_task)
-    configure_pipeline_task(register_model_task)
+    configure_mlflow_task(register_model_task)
 
 if __name__ == '__main__':
     metadata = {
