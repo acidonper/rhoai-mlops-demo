@@ -7,7 +7,7 @@ spec:
   project: default
   sources:
     - repoURL: https://github.com/acidonper/rhoai-mlops-demo.git
-      targetRevision: demo/840
+      targetRevision: feature/mlflow
       path: researcher-project/mlops/ml
   destination:
     server: https://kubernetes.default.svc
