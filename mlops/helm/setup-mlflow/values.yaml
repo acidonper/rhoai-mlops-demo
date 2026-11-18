@@ -1,7 +1,7 @@
 # The MLflow operator reconciles this object. This chart installs PostgreSQL
 # and writes the connection Secret named by backendStore.secretName.
 mlflow:
-  name: default-mlflow
+  name: mlflow
   namespace: redhat-ods-applications
   replicas: 1
   backendStore:
