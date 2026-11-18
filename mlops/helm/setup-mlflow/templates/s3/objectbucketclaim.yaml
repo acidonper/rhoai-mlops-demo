@@ -4,7 +4,7 @@ apiVersion: objectbucket.io/v1alpha1
 kind: ObjectBucketClaim
 metadata:
   name: {{ .Values.mlflow.artifactStore.bucket }}
-  namespace: {{ $.Release.Namespace }}
+  namespace: {{ .Values.mlflow.namespace }}
 spec:
   bucketName: {{ .Values.mlflow.artifactStore.bucket }}
   storageClassName: {{ .Values.objectStorage.storageClassName }}
