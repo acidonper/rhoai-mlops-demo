@@ -11,9 +11,9 @@ Kubeflow pipeline `kfp-training-pipeline` in [`prod_train_save_pipeline.py`](pro
 | `preprocess_data` | `data_preprocessing.py` | Drops empty rows, splits train, validation, and test, and writes the scaler and label encoder. |
 | `train_model` | `train_model.py` | Trains the Keras network and records `pip freeze` output. |
 | `convert_keras_to_onnx` | `train_model.py` | Converts the trained model to ONNX. |
-| `evaluate_keras_model_performance` | `evaluate_model.py` | Scores the full test set, logs that result on the Kubeflow MLflow run, traces the first 200 test rows, compares those traces with the previous evaluation, and fails at or below `0.01`. |
+| `evaluate_keras_model_performance` | `evaluate_model.py` | Scores the full test set and fails at or below `0.01`. |
 | `validate_onnx_model` | `evaluate_model.py` | Asserts ONNX and Keras predictions match. |
-| `push_to_model_registry` | `save_model.py` | Stores the artifacts, registers `jukebox` as ONNX format version `1`, and logs that ONNX file on the same MLflow run. |
+| `push_to_model_registry` | `save_model.py` | Stores the artifacts, registers `jukebox` as ONNX format version `1`, and registers that ONNX file as the next MLflow model version. |
 
 ## Connections
 
@@ -38,7 +38,9 @@ The registry address is `https://<namespace>-registry-rest.<cluster_domain>`. `<
 
 ## MLflow
 
-`evaluate_keras_model_performance` and `push_to_model_registry` receive these variables on their pods:
+Only `push_to_model_registry` talks to MLflow. It registers the ONNX file as a new version of the model. The evaluation step does not write runs, traces, or metrics.
+
+The register pod receives these variables:
 
 | Variable | Value |
 | --- | --- |
@@ -47,22 +49,16 @@ The registry address is `https://<namespace>-registry-rest.<cluster_domain>`. `<
 | `MLFLOW_K8S_INTEGRATION` | `true` |
 | `MLFLOW_TRACKING_INSECURE_TLS` | `false` |
 
-The Tekton task `execute-ds-pipeline` exports the same variables. Submitting the pipeline reads them and copies them onto those two pods. `REQUESTS_CA_BUNDLE` stays on the service CA, so the client verifies the tracking server certificate. A workbench submit uses the same defaults when those variables are unset.
+The Tekton task `execute-ds-pipeline` exports the same variables. Submitting the pipeline reads them and copies them onto the register pod. `REQUESTS_CA_BUNDLE` stays on the service CA, so the client verifies the tracking server certificate. A workbench submit uses the same defaults when those variables are unset. The workspace is the pod namespace (`MLFLOW_WORKSPACE`).
 
-The evaluation step writes to the MLflow run that the pipeline server creates for this Kubeflow run. It finds that run by the tag `kfp.pipeline_run_id`, using the pod label `pipeline/runid`. The workspace is the pod namespace (`MLFLOW_WORKSPACE`).
+Registration creates the next version of the registered model named after `model_name`:
 
-On that run it records:
+- the ONNX file is the version artifact
+- accuracy, weighted precision, recall, and F1 are linked to that version
+- the version description records the pipeline version, accuracy, and weighted F1
+- tags `pipeline_version` and `accuracy` are set on the version
 
-- parameters for the model, version, namespace, cluster domain, Kubeflow run id, test size, traced size, and each training hyperparameter
-- metrics for accuracy, weighted precision, recall, and F1 on the full test set, plus the previous registry accuracy
-- a confusion-matrix table and a predictions table
-- a trace for each of the first 200 test rows, scored by `label_match` (predicted country equals the label) and `confidence` (highest class probability)
-
-When an earlier pipeline evaluation of the same model exists, the step calls `mlflow.genai.compare_evaluations` with `log_results=True`. That pairs the traces and logs `compare/<baseline>/<scorer>/{diff,ci_low,ci_high,p_value,effect_size,n_paired}` on the new run, plus a comparison artifact. The first evaluation has no baseline, and a comparison that is not significant does not fail the pipeline. Accuracy still fails the step at or below `0.01`.
-
-The register step resumes the same run, logs dataset metadata, and logs the ONNX file as a new MLflow model version. That version carries the run metrics, which is what the Model metrics tab shows. The step leaves a Kubeflow-owned run running so the pipeline server can finish it. Open the pipeline run under **Develop & train > Experiments (MLflow)** to see the parameters, metrics, traces, and artifacts.
-
-With `prod_flag` true, the logged model is tagged `prod=true` and the MLflow alias `prod` moves to the new registered version. The Kubeflow model registry metadata for the version includes `mlflow_run_id` and `mlflow_model_id`.
+Open the model under **Develop & train > Model registry (MLflow)** and compare versions by those metrics. The version tag `prod` is `true` or `false`. With `prod_flag` true, the alias `prod` moves to the new version. The Kubeflow model registry metadata for the version includes `mlflow_model_id` and `mlflow_registered_version`. Accuracy still fails the evaluation step at or below `0.01`.
 
 ## Submit a run
 

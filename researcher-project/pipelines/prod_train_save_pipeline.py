@@ -53,10 +53,10 @@ def configure_pipeline_task(task):
     task.set_env_variable('AWS_RESPONSE_CHECKSUM_VALIDATION', 'when_required')
 
 def configure_mlflow_task(task):
-    """Tracking settings for the steps that write runs and model versions.
+    """Tracking settings for the step that registers a model version.
 
     The Tekton submit step exports the same names. create_run_from_pipeline_func
-    builds this graph in that process, so those values are copied onto the pods.
+    builds this graph in that process, so those values are copied onto the pod.
     """
     configure_pipeline_task(task)
     task.set_env_variable('MLFLOW_TRACKING_URI', _mlflow_setting('MLFLOW_TRACKING_URI', _MLFLOW_TRACKING_URI))
@@ -129,19 +129,13 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         cluster_domain = cluster_domain,
         version = version, # Add version to force a rerun of this step every new version
         prod_flag = prod_flag,
-        hyperparameters = hyperparameters,
     )
     kubernetes.use_field_path_as_env(
         model_evaluation_task,
         env_name='NAMESPACE',
         field_path='metadata.namespace'
     )
-    kubernetes.use_field_path_as_env(
-        model_evaluation_task,
-        env_name='KFP_PIPELINE_RUN_ID',
-        field_path="metadata.labels['pipeline/runid']"
-    )
-    configure_mlflow_task(model_evaluation_task)
+    configure_pipeline_task(model_evaluation_task)
 
 
     # Validate that the Keras -> ONNX conversion was successful

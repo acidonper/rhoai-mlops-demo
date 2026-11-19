@@ -89,8 +89,9 @@ def push_to_model_registry(
     with open(namespace_file_path, 'r') as namespace_file:
         pod_namespace = namespace_file.read().strip()
 
-    # The tracking workspace is the project namespace. The registry host uses the
-    # first segment, plus -prod when this run publishes a production model.
+    # The MLflow workspace is the project namespace. Registration uses
+    # kubernetes-namespaced auth. The model-registry host uses the first
+    # segment, plus -prod when this run publishes a production model.
     environ["MLFLOW_WORKSPACE"] = pod_namespace
 
     if prod_flag:
@@ -110,10 +111,10 @@ def push_to_model_registry(
     )
     registered_model_name = model_object_prefix
 
-    # Resume the evaluation run and attach its metrics to a new MLflow model version.
+    # Register the ONNX file as the next MLflow model version. Metrics are
+    # linked to that version so the registry can compare versions.
     import mlflow
     import onnx
-    import re
 
     tracking_uri = environ.get("MLFLOW_TRACKING_URI")
     if not tracking_uri:
@@ -125,45 +126,15 @@ def push_to_model_registry(
     environ.pop("MLFLOW_EXPERIMENT_ID", None)
     mlflow.set_tracking_uri(tracking_uri)
 
-    mlflow_run_owner = str(metrics.metadata.get("mlflow_run_owner", "pipeline"))
-    mlflow_run_id = metrics.metadata.get("mlflow_run_id")
-    if mlflow_run_id:
-        mlflow.start_run(run_id=str(mlflow_run_id))
-    else:
-        experiment = mlflow.set_experiment(registered_model_name)
-        mlflow.start_run(experiment_id=experiment.experiment_id, run_name=version)
-
-    def _param_key(key):
-        cleaned = re.sub(r"[^0-9A-Za-z_./ -]", "_", str(key)).strip()
-        return cleaned[:250]
-
-    try:
-        active_run = mlflow.active_run()
-        existing_params = set(active_run.data.params)
-        dataset_params = {}
-        for key, value in dataset.metadata.items():
-            if key in ["display_name", "store_session_info"]:
-                continue
-            param_key = _param_key(key)
-            if not param_key or param_key in existing_params or param_key in dataset_params:
-                continue
-            dataset_params[param_key] = str(value)[:500]
-        if dataset_params:
-            mlflow.log_params(dataset_params)
-        if "accuracy" not in active_run.data.metrics:
-            fallback_metrics = {"accuracy": float(metrics.metadata["Accuracy"])}
-            for kfp_name, mlflow_name in (
-                ("Prev Model Accuracy", "registry_prev_accuracy"),
-                ("MLflow Prev Accuracy", "mlflow_prev_accuracy"),
-                ("Weighted Precision", "weighted_precision"),
-                ("Weighted Recall", "weighted_recall"),
-                ("Weighted F1", "weighted_f1"),
-            ):
-                if kfp_name in metrics.metadata:
-                    fallback_metrics[mlflow_name] = float(metrics.metadata[kfp_name])
-            mlflow.log_metrics(fallback_metrics)
-
-        onnx_model = onnx.load(model.path)
+    onnx_model = onnx.load(model.path)
+    version_metrics = {
+        "accuracy": float(metrics.metadata["Accuracy"]),
+        "weighted_precision": float(metrics.metadata["Weighted Precision"]),
+        "weighted_recall": float(metrics.metadata["Weighted Recall"]),
+        "weighted_f1": float(metrics.metadata["Weighted F1"]),
+    }
+    mlflow.set_experiment(registered_model_name)
+    with mlflow.start_run(run_name=version):
         model_info = mlflow.onnx.log_model(
             onnx_model,
             name=registered_model_name,
@@ -176,27 +147,50 @@ def push_to_model_registry(
         )
         if model_info.model_id is None or model_info.registered_model_version is None:
             raise Exception("MLflow did not register a model version")
-        mlflow_client = mlflow.MlflowClient()
-        registered_version = str(model_info.registered_model_version)
-        mlflow_client.set_model_version_tag(registered_model_name, registered_version, "pipeline_version", version)
-        mlflow_client.set_model_version_tag(
-            registered_model_name,
-            registered_version,
-            "accuracy",
-            str(metrics.metadata["Accuracy"]),
+        mlflow.log_metrics(version_metrics, model_id=model_info.model_id)
+
+    mlflow_client = mlflow.MlflowClient()
+    registered_version = str(model_info.registered_model_version)
+    mlflow_client.update_model_version(
+        name=registered_model_name,
+        version=registered_version,
+        description=(
+            f"Pipeline version {version}. "
+            f"Accuracy {version_metrics['accuracy']:.4f}, "
+            f"weighted F1 {version_metrics['weighted_f1']:.4f}."
+        ),
+    )
+    mlflow_client.set_model_version_tag(
+        registered_model_name, registered_version, "pipeline_version", version
+    )
+    mlflow_client.set_model_version_tag(
+        registered_model_name,
+        registered_version,
+        "accuracy",
+        str(version_metrics["accuracy"]),
+    )
+    mlflow_client.set_model_version_tag(
+        registered_model_name,
+        registered_version,
+        "prod",
+        str(prod_flag).lower(),
+    )
+    if prod_flag:
+        mlflow_client.set_registered_model_alias(
+            registered_model_name, "prod", registered_version
         )
-        if prod_flag:
-            mlflow_client.set_registered_model_alias(registered_model_name, "prod", registered_version)
-        print("MLflow model:", model_info.model_id, "registered version:", registered_version)
-    finally:
-        if mlflow_run_owner != "kfp":
-            mlflow.end_run()
+    print(
+        "MLflow model:",
+        model_info.model_id,
+        "registered version:",
+        registered_version,
+    )
 
     metadata = {
             "accuracy": str(metrics.metadata['Accuracy']),
         } | {key : str(value) for key, value in dataset.metadata.items() if key not in ["display_name", "store_session_info"]}
-    metadata["mlflow_run_id"] = str(model_info.run_id)
-    metadata["mlflow_model_id"] = str(model_info.model_id) 
+    metadata["mlflow_model_id"] = str(model_info.model_id)
+    metadata["mlflow_registered_version"] = registered_version 
 
     if not prod_flag:
         s3_path_updated_format = utils.s3_uri_from(model_artifact_s3_path,
