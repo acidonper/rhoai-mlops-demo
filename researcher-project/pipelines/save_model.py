@@ -9,13 +9,14 @@ from kfp.dsl import (
     Artifact,
 )
 
-@component(base_image='python:3.12', packages_to_install=['pip==25.3', 'setuptools==80.9.0', 'boto3==1.40.76', 'model-registry==0.3.7', 'mlflow[kubernetes]==3.18.0', 'onnx==1.20.1', 'protobuf==7.34.0'])
+@component(base_image='python:3.12', packages_to_install=['pip==25.3', 'setuptools==80.9.0', 'boto3==1.40.76', 'model-registry==0.3.7', 'mlflow[kubernetes]==3.18.0', 'onnx==1.20.1', 'protobuf==7.34.0', 'pandas==2.2.3'])
 
 def push_to_model_registry(
     model_name: str,
     version: str,
     cluster_domain: str,
     prod_flag: bool,
+    hyperparameters: dict,
     keras_model: Input[Artifact],
     model: Input[Artifact],
     metrics: Input[Metrics],
@@ -111,10 +112,13 @@ def push_to_model_registry(
     )
     registered_model_name = model_object_prefix
 
-    # Register the ONNX file as the next MLflow model version. Metrics are
-    # linked to that version so the registry can compare versions.
+    # Log the ONNX file as an MLflow 3 LoggedModel. The model keeps its
+    # training parameters, and the evaluation metrics are linked to that
+    # model and to the song dataset so versions can be compared.
     import mlflow
     import onnx
+    import pandas as pd
+    from mlflow.entities import Dataset
 
     tracking_uri = environ.get("MLFLOW_TRACKING_URI")
     if not tracking_uri:
@@ -125,72 +129,60 @@ def push_to_model_registry(
     environ.pop("MLFLOW_RUN_ID", None)
     environ.pop("MLFLOW_EXPERIMENT_ID", None)
     mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_experiment(experiment_name=registered_model_name)
+
+    feature_columns = [
+        "is_explicit", "duration_ms", "danceability", "energy", "key",
+        "loudness", "mode", "speechiness", "acousticness", "instrumentalness",
+        "liveness", "valence", "tempo",
+    ]
+    song_df = pd.read_csv(dataset.path)
+    with open(scaler.path, "rb") as scaler_file:
+        scaler_ = pd.read_pickle(scaler_file)
+    sample = song_df[feature_columns].dropna().head(2)
+    scaled_sample = pd.DataFrame(
+        scaler_.transform(sample),
+        columns=feature_columns,
+    ).astype("float32")
+    input_example = {
+        name: scaled_sample[[name]].to_numpy() for name in feature_columns
+    }
+    model_params = {"version": version, "prod": str(prod_flag).lower()}
+    for key, value in hyperparameters.items():
+        if isinstance(value, (int, float, str, bool)):
+            model_params[str(key)] = value
+        else:
+            model_params[str(key)] = str(value)
 
     onnx_model = onnx.load(model.path)
-    version_metrics = {
-        "accuracy": float(metrics.metadata["Accuracy"]),
-        "weighted_precision": float(metrics.metadata["Weighted Precision"]),
-        "weighted_recall": float(metrics.metadata["Weighted Recall"]),
-        "weighted_f1": float(metrics.metadata["Weighted F1"]),
-    }
-    mlflow.set_experiment(registered_model_name)
     with mlflow.start_run(run_name=version):
+        logged_dataset: Dataset = mlflow.data.from_pandas(song_df, name=registered_model_name)
         model_info = mlflow.onnx.log_model(
             onnx_model,
             name=registered_model_name,
-            registered_model_name=registered_model_name,
-            tags={
-                "version": version,
-                "prod": str(prod_flag).lower(),
-            },
-            pip_requirements=["onnx==1.20.1", "onnxruntime==1.20.1"],
+            params=model_params,
+            input_example=input_example,
         )
-        if model_info.model_id is None or model_info.registered_model_version is None:
-            raise Exception("MLflow did not register a model version")
-        mlflow.log_metrics(version_metrics, model_id=model_info.model_id)
+        logged_model = mlflow.get_logged_model(model_info.model_id)
+        print(logged_model.model_id, logged_model.params)
 
-    mlflow_client = mlflow.MlflowClient()
-    registered_version = str(model_info.registered_model_version)
-    mlflow_client.update_model_version(
-        name=registered_model_name,
-        version=registered_version,
-        description=(
-            f"Pipeline version {version}. "
-            f"Accuracy {version_metrics['accuracy']:.4f}, "
-            f"weighted F1 {version_metrics['weighted_f1']:.4f}."
-        ),
-    )
-    mlflow_client.set_model_version_tag(
-        registered_model_name, registered_version, "pipeline_version", version
-    )
-    mlflow_client.set_model_version_tag(
-        registered_model_name,
-        registered_version,
-        "accuracy",
-        str(version_metrics["accuracy"]),
-    )
-    mlflow_client.set_model_version_tag(
-        registered_model_name,
-        registered_version,
-        "prod",
-        str(prod_flag).lower(),
-    )
-    if prod_flag:
-        mlflow_client.set_registered_model_alias(
-            registered_model_name, "prod", registered_version
+        mlflow.log_metrics(
+            metrics={
+                "accuracy": float(metrics.metadata["Accuracy"]),
+                "weighted_precision": float(metrics.metadata["Weighted Precision"]),
+                "weighted_recall": float(metrics.metadata["Weighted Recall"]),
+                "weighted_f1": float(metrics.metadata["Weighted F1"]),
+            },
+            model_id=logged_model.model_id,
+            dataset=logged_dataset,
         )
-    print(
-        "MLflow model:",
-        model_info.model_id,
-        "registered version:",
-        registered_version,
-    )
+        logged_model = mlflow.get_logged_model(model_info.model_id)
+        print(logged_model.model_id, logged_model.metrics)
 
     metadata = {
             "accuracy": str(metrics.metadata['Accuracy']),
         } | {key : str(value) for key, value in dataset.metadata.items() if key not in ["display_name", "store_session_info"]}
-    metadata["mlflow_model_id"] = str(model_info.model_id)
-    metadata["mlflow_registered_version"] = registered_version 
+    metadata["mlflow_model_id"] = str(model_info.model_id) 
 
     if not prod_flag:
         s3_path_updated_format = utils.s3_uri_from(model_artifact_s3_path,

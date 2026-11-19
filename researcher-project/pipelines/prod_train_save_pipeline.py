@@ -153,6 +153,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         version = version,
         cluster_domain = cluster_domain,
         prod_flag = prod_flag,
+        hyperparameters = hyperparameters,
         keras_model = training_task.outputs["trained_model"],
         model = convert_task.outputs["onnx_model"],
         metrics = model_evaluation_task.outputs["metrics"],
