@@ -86,7 +86,7 @@ spec:
           arguments=default_parameters,
           experiment_name="$(params.APPLICATION_NAME)-model-training",
           namespace=namespace,
-          enable_caching=True
+          enable_caching=False
       )
 
       print("🥱 wait for the run to finish")
