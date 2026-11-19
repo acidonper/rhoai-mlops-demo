@@ -129,11 +129,17 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         cluster_domain = cluster_domain,
         version = version, # Add version to force a rerun of this step every new version
         prod_flag = prod_flag,
+        hyperparameters = hyperparameters,
     )
     kubernetes.use_field_path_as_env(
         model_evaluation_task,
         env_name='NAMESPACE',
         field_path='metadata.namespace'
+    )
+    kubernetes.use_field_path_as_env(
+        model_evaluation_task,
+        env_name='KFP_PIPELINE_RUN_ID',
+        field_path="metadata.labels['pipeline/runid']"
     )
     configure_mlflow_task(model_evaluation_task)
 

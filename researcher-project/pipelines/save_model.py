@@ -9,7 +9,7 @@ from kfp.dsl import (
     Artifact,
 )
 
-@component(base_image='python:3.12', packages_to_install=['pip==25.3', 'setuptools==80.9.0', 'boto3==1.40.76', 'model-registry==0.3.7', 'mlflow[kubernetes]==3.13.0', 'onnx==1.20.1', 'protobuf==7.34.0'])
+@component(base_image='python:3.12', packages_to_install=['pip==25.3', 'setuptools==80.9.0', 'boto3==1.40.76', 'model-registry==0.3.7', 'mlflow[kubernetes]==3.18.0', 'onnx==1.20.1', 'protobuf==7.34.0'])
 
 def push_to_model_registry(
     model_name: str,
@@ -87,12 +87,16 @@ def push_to_model_registry(
     namespace_file_path =\
         '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
     with open(namespace_file_path, 'r') as namespace_file:
-        namespace = namespace_file.read()
+        pod_namespace = namespace_file.read().strip()
+
+    # The tracking workspace is the project namespace. The registry host uses the
+    # first segment, plus -prod when this run publishes a production model.
+    environ["MLFLOW_WORKSPACE"] = pod_namespace
 
     if prod_flag:
-        namespace = namespace.split("-")[0]+"-prod"
+        namespace = pod_namespace.split("-")[0]+"-prod"
     else:
-        namespace = namespace.split("-")[0]
+        namespace = pod_namespace.split("-")[0]
 
     model_object_prefix = model_name if model_name else "model"
     version = version if version else datetime.now().strftime('%y%m%d%H%M')
@@ -116,23 +120,24 @@ def push_to_model_registry(
         raise Exception("MLFLOW_TRACKING_URI is not set")
     environ.setdefault("MLFLOW_TRACKING_AUTH", "kubernetes-namespaced")
     environ.setdefault("MLFLOW_K8S_INTEGRATION", "true")
-    environ.setdefault("MLFLOW_TRACKING_INSECURE_TLS", "true")
+    environ.setdefault("MLFLOW_TRACKING_INSECURE_TLS", "false")
     environ.pop("MLFLOW_RUN_ID", None)
     environ.pop("MLFLOW_EXPERIMENT_ID", None)
     mlflow.set_tracking_uri(tracking_uri)
 
+    mlflow_run_owner = str(metrics.metadata.get("mlflow_run_owner", "pipeline"))
     mlflow_run_id = metrics.metadata.get("mlflow_run_id")
     if mlflow_run_id:
-        run_context = mlflow.start_run(run_id=str(mlflow_run_id))
+        mlflow.start_run(run_id=str(mlflow_run_id))
     else:
         experiment = mlflow.set_experiment(registered_model_name)
-        run_context = mlflow.start_run(experiment_id=experiment.experiment_id, run_name=version)
+        mlflow.start_run(experiment_id=experiment.experiment_id, run_name=version)
 
     def _param_key(key):
         cleaned = re.sub(r"[^0-9A-Za-z_./ -]", "_", str(key)).strip()
         return cleaned[:250]
 
-    with run_context:
+    try:
         active_run = mlflow.active_run()
         existing_params = set(active_run.data.params)
         dataset_params = {}
@@ -183,6 +188,9 @@ def push_to_model_registry(
         if prod_flag:
             mlflow_client.set_registered_model_alias(registered_model_name, "prod", registered_version)
         print("MLflow model:", model_info.model_id, "registered version:", registered_version)
+    finally:
+        if mlflow_run_owner != "kfp":
+            mlflow.end_run()
 
     metadata = {
             "accuracy": str(metrics.metadata['Accuracy']),
