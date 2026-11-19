@@ -10,7 +10,7 @@ from kfp.dsl import (
     Artifact,
 )
 
-@component(base_image="tensorflow/tensorflow:2.21.0", packages_to_install=["numpy<2", "pandas==2.2.3", "scikit-learn==1.6.1"])
+@component(base_image="tensorflow/tensorflow:2.21.0", packages_to_install=["numpy<2", "pandas==2.2.3", "scikit-learn==1.6.1", "mlflow[kubernetes]==3.18.0"])
 def train_model(
     train_data: Input[Dataset],
     val_data: Input[Dataset],
@@ -44,6 +44,23 @@ def train_model(
     tf.random.set_seed(SEED)
     tf.keras.utils.set_random_seed(SEED)
     tf.config.experimental.enable_op_determinism()
+
+    # Autolog writes parameters, epoch metrics, and the Keras model during fit.
+    import mlflow
+    from os import environ
+
+    tracking_uri = environ.get("MLFLOW_TRACKING_URI")
+    if not tracking_uri:
+        raise Exception("MLFLOW_TRACKING_URI is not set")
+    environ.setdefault("MLFLOW_TRACKING_AUTH", "kubernetes-namespaced")
+    environ.setdefault("MLFLOW_K8S_INTEGRATION", "true")
+    environ.setdefault("MLFLOW_TRACKING_INSECURE_TLS", "false")
+    environ.pop("MLFLOW_RUN_ID", None)
+    environ.pop("MLFLOW_EXPERIMENT_ID", None)
+    mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_workspace("project01")
+    mlflow.set_experiment(experiment_id="2")
+    mlflow.autolog()
     
     with open(train_data.path, 'rb') as pickle_file:
         X_train, y_train = pd.read_pickle(pickle_file)

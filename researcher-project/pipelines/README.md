@@ -9,7 +9,7 @@ Kubeflow pipeline `kfp-training-pipeline` in [`prod_train_save_pipeline.py`](pro
 | `fetch_data` | `fetch_data.py` | Downloads `datasets/song_properties.parquet` and `datasets/song_rankings.parquet`, merges them on `spotify_id`, and writes a CSV dataset. |
 | `validate_data` | `data_validation.py` | Fails when the dataset path is missing. |
 | `preprocess_data` | `data_preprocessing.py` | Drops empty rows, splits train, validation, and test, and writes the scaler and label encoder. |
-| `train_model` | `train_model.py` | Trains the Keras network and records `pip freeze` output. |
+| `train_model` | `train_model.py` | Trains the Keras network, records `pip freeze` output, and autologs parameters, epoch metrics, and the model to MLflow. |
 | `convert_keras_to_onnx` | `train_model.py` | Converts the trained model to ONNX. |
 | `evaluate_keras_model_performance` | `evaluate_model.py` | Scores the full test set and fails at or below `0.01`. |
 | `validate_onnx_model` | `evaluate_model.py` | Asserts ONNX and Keras predictions match. |
@@ -38,9 +38,9 @@ The registry address is `https://<namespace>-registry-rest.<cluster_domain>`. `<
 
 ## MLflow
 
-Only `push_to_model_registry` talks to MLflow. It logs the ONNX file as an MLflow 3 logged model. The evaluation step does not write runs, traces, or metrics.
+`train_model` and `push_to_model_registry` talk to MLflow. Training autologs the Keras fit. The register step logs the ONNX file as an MLflow 3 logged model. The evaluation step does not write runs, traces, or metrics.
 
-The register pod receives these variables:
+The training and register pods receive these variables:
 
 | Variable | Value |
 | --- | --- |
@@ -49,7 +49,9 @@ The register pod receives these variables:
 | `MLFLOW_K8S_INTEGRATION` | `true` |
 | `MLFLOW_TRACKING_INSECURE_TLS` | `false` |
 
-The Tekton task `execute-ds-pipeline` exports the same variables. Submitting the pipeline reads them and copies them onto the register pod. `REQUESTS_CA_BUNDLE` stays on the service CA, so the client verifies the tracking server certificate. A workbench submit uses the same defaults when those variables are unset. The workspace is the pod namespace (`MLFLOW_WORKSPACE`).
+The Tekton task `execute-ds-pipeline` exports the same variables. Submitting the pipeline reads them and copies them onto the training and register pods. `REQUESTS_CA_BUNDLE` stays on the service CA, so the client verifies the tracking server certificate. A workbench submit uses the same defaults when those variables are unset.
+
+Before `fit`, the training step calls `mlflow.set_workspace("project01")`, `mlflow.set_experiment(experiment_id="2")`, and `mlflow.autolog()`. Keras then writes the optimizer, the loss, the epoch count, and the training and validation metrics for each epoch to that experiment. The model saved at the end of `fit` is stored on the same run.
 
 The register step opens a run named with the pipeline version in the experiment named after `model_name`. On that run it:
 

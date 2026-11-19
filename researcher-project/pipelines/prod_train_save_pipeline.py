@@ -53,10 +53,10 @@ def configure_pipeline_task(task):
     task.set_env_variable('AWS_RESPONSE_CHECKSUM_VALIDATION', 'when_required')
 
 def configure_mlflow_task(task):
-    """Tracking settings for the step that registers a model version.
+    """Tracking settings for the steps that write to MLflow.
 
     The Tekton submit step exports the same names. create_run_from_pipeline_func
-    builds this graph in that process, so those values are copied onto the pod.
+    builds this graph in that process, so those values are copied onto the pods.
     """
     configure_pipeline_task(task)
     task.set_env_variable('MLFLOW_TRACKING_URI', _mlflow_setting('MLFLOW_TRACKING_URI', _MLFLOW_TRACKING_URI))
@@ -101,7 +101,7 @@ def training_pipeline(hyperparameters: dict, model_name: str, version: str, clus
         scaler = pre_processing_task.outputs["scaler"],
         hyperparameters = hyperparameters,
     )
-    configure_pipeline_task(training_task)
+    configure_mlflow_task(training_task)
 
     if isinstance(kueue_queue_name, str) and kueue_queue_name.strip():
         print(f"Assigning task to Kueue LocalQueue: {kueue_queue_name.strip()}")
